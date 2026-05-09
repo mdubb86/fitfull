@@ -63,4 +63,18 @@ describe('Fitfull', () => {
         const b = Fitfull.create();
         assert.notStrictEqual(a, b);
     });
+
+    test('fit returns empty result for whitespace-only text', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            text: '   ',
+            font: INTER_REGULAR,
+            width: 400,
+            height: 100,
+        });
+        assert.strictEqual(result.lines.length, 0);
+        assert.strictEqual(result.width, 0);
+        assert.strictEqual(result.height, 0);
+        assert.strictEqual(result.arrangements, 0);
+    });
 });

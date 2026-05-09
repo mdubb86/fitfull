@@ -79,6 +79,18 @@ export class Fitfull {
     async fit(options: FitOptions): Promise<FitResult> {
         const tokens = await this.resolveTokens(options);
 
+        if (tokens.length === 0) {
+            return {
+                svg: '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"/>',
+                lines: [],
+                width: 0,
+                height: 0,
+                minTextHeight: 0,
+                maxTextHeight: 0,
+                arrangements: 0,
+            };
+        }
+
         // Ensure FontManager exists
         if (!this.fonts) {
             this.fonts = await FontManager.create();
@@ -159,7 +171,7 @@ export class Fitfull {
         weight: 'regular' | 'bold' | 'italic' | 'bolditalic'
     ): Token[] {
         const tokens: Token[] = [];
-        const words = text.split(' ');
+        const words = text.split(' ').filter(w => w.length > 0);
 
         for (let i = 0; i < words.length; i++) {
             tokens.push({ text: words[i], size, font, weight });

@@ -12,7 +12,8 @@ import { buildKerningLookup } from './font-metrics.js';
 function getNameString(entry: unknown): string {
     if (typeof entry === 'string') return entry;
     if (entry && typeof entry === 'object' && 'en' in entry) {
-        return String((entry as { en: unknown }).en);
+        const en = (entry as { en: unknown }).en;
+        return typeof en === 'string' ? en : '';
     }
     return '';
 }
@@ -50,7 +51,7 @@ async function buildSystemFontIndexes(): Promise<void> {
         const primary = new Map<string, Map<string, string>>();
         const secondary = new Map<string, Map<string, string>>();
         const paths = await getSystemFonts();
-        console.log(`[font-manager] getSystemFonts returned ${paths.length} paths`);
+        console.error(`[font-manager] getSystemFonts returned ${paths.length} paths`);
 
         for (const path of paths) {
             // Skip font collections (.ttc) - opentype.js doesn't support them
@@ -83,7 +84,7 @@ async function buildSystemFontIndexes(): Promise<void> {
             }
         }
 
-        console.log(`[font-manager] indexed ${primary.size} preferred families, ${secondary.size} font families`);
+        console.error(`[font-manager] indexed ${primary.size} preferred families, ${secondary.size} font families`);
         primaryIndex = primary;
         secondaryIndex = secondary;
     })();

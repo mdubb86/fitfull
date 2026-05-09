@@ -17,7 +17,10 @@ function status(msg: string) {
 function parseSize(sizeStr: string): { width: number; height: number } {
     const match = sizeStr.match(/^(\d+)x(\d+)$/);
     if (!match) throw new Error(`Invalid size format: "${sizeStr}". Expected WxH (e.g., 400x800)`);
-    return { width: parseInt(match[1]), height: parseInt(match[2]) };
+    const width = parseInt(match[1]);
+    const height = parseInt(match[2]);
+    if (width <= 0 || height <= 0) throw new Error(`Size dimensions must be positive integers (e.g. 400x100)`);
+    return { width, height };
 }
 
 function svgToPng(svg: string): Uint8Array {
@@ -233,6 +236,11 @@ program
                 annotate: opts.annotate,
             });
             const elapsed = performance.now() - startTime;
+
+            if (result.lines.length === 0) {
+                console.error('Error: No renderable text content');
+                process.exit(1);
+            }
 
             status(`Found fit: ${result.width.toFixed(0)}x${result.height.toFixed(0)}, ${result.lines.length} line(s)`);
 
