@@ -1,0 +1,10 @@
+node_modules/
+dist/
+fitfull
+.pnpm-store/
+.idea/
+*.iml
+.DS_Store
+.vscode/
+*.log
+debug-fonts.cjs
