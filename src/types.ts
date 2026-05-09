@@ -18,7 +18,6 @@ export type Token = {
 export type MeasuredToken = {
     token: Token;
     x: number;              // x position on the line
-    width: number;          // tight bbox width
     advanceWidth: number;   // width including spacing for next token
     path: Path;             // the rendered path
     bboxX1: number;         // absolute left edge of bbox
@@ -30,8 +29,6 @@ export type MeasuredToken = {
 /** Line measurement result */
 export type MeasuredLine = {
     tokens: MeasuredToken[];
-    width: number;          // tight total width
-    height: number;         // tight total height
     baseline: number;       // distance from top to baseline (using font metrics)
     ascent: number;         // max ascent across all tokens (font metrics)
     descent: number;        // min descent across all tokens (font metrics, negative)
@@ -44,14 +41,6 @@ export type MeasuredLine = {
         width: number;
         height: number;
     };
-};
-
-/** Font metrics at a specific size */
-export type FontMetrics = {
-    ascent: number;         // pixels above baseline
-    descent: number;        // pixels below baseline (negative)
-    lineHeight: number;     // ascent - descent
-    unitsPerEm: number;
 };
 
 /** Loaded font map */
@@ -87,9 +76,6 @@ export type ArrangementMetrics = {
     totalHeight: number;
     lineMetrics: LineMetrics[];
 };
-
-/** Kerning lookup map: "A,V" -> kerning value in font units */
-export type KerningLookup = Map<string, number>;
 
 /** A line with its computed position in the layout */
 export type PositionedLine = {

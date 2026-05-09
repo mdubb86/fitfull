@@ -19,7 +19,6 @@ export function measureToken(
     return {
         token,
         x,
-        width: bbox.x2 - bbox.x1,
         advanceWidth: getAdvanceWidth(font, token.text, token.size),
         path,
         bboxX1: bbox.x1,
@@ -37,8 +36,6 @@ export function measureLine(tokens: Token[], fonts: FontManager): MeasuredLine {
     if (tokens.length === 0) {
         return {
             tokens: [],
-            width: 0,
-            height: 0,
             baseline: 0,
             ascent: 0,
             descent: 0,
@@ -131,8 +128,6 @@ export function measureLine(tokens: Token[], fonts: FontManager): MeasuredLine {
 
     return {
         tokens: measuredTokens,
-        width: tightBbox.width,
-        height: tightBbox.height,
         baseline,
         ascent: maxAscent,
         descent: minDescent,
