@@ -1,13 +1,21 @@
 import type { SearchContext, SearchResult } from './types.js';
-import { Score, FIT_TOLERANCE } from './types.js';
+import { FIT_TOLERANCE } from './types.js';
 import { getArrangementMetrics } from '../measure/index.js';
 import { generateSmartArrangements, trimLineWhitespace } from './wrapping.js';
+
+type BalancedScore = { scale: number; minLineWidth: number };
+
+function isBetterThan(a: BalancedScore, b: BalancedScore): boolean {
+    if (a.scale > b.scale) return true;
+    if (a.scale < b.scale) return false;
+    return a.minLineWidth > b.minLineWidth;
+}
 
 /** Balanced strategy: evaluate arrangements near ideal break points, compute scale analytically */
 export function findBalancedFit(ctx: SearchContext): SearchResult | undefined {
     let bestScale = 0;
     let bestArrangement: import('../types.js').Token[][] = [];
-    let bestScore = new Score(0, [], ctx.wrap);
+    let bestScore: BalancedScore = { scale: 0, minLineWidth: 0 };
     let arrangements = 0;
 
     for (const arrangement of generateSmartArrangements(ctx.tokens, ctx.cumulativeWidths, ctx.totalTokenWidth, ctx.minLines, ctx.maxLines)) {
@@ -44,11 +52,12 @@ export function findBalancedFit(ctx: SearchContext): SearchResult | undefined {
         const scaledWidth = metrics.maxWidth * scale;
         const scaledHeight = metrics.totalHeight * scale;
         if (scaledWidth <= ctx.width + FIT_TOLERANCE && scaledHeight <= ctx.height + FIT_TOLERANCE) {
-            const scalePercentage = scale / ctx.maxScale;
             const lineWidths = metrics.lineMetrics.map(lm => lm.width * scale);
-            const score = new Score(scalePercentage, lineWidths, ctx.wrap);
-
-            if (score.isBetterThan(bestScore)) {
+            const score: BalancedScore = {
+                scale: scale / ctx.maxScale,
+                minLineWidth: Math.min(...lineWidths),
+            };
+            if (isBetterThan(score, bestScore)) {
                 bestScale = scale;
                 bestArrangement = trimmed;
                 bestScore = score;
@@ -61,7 +70,6 @@ export function findBalancedFit(ctx: SearchContext): SearchResult | undefined {
     return {
         scale: bestScale,
         arrangement: bestArrangement,
-        score: bestScore,
         arrangements,
     };
 }

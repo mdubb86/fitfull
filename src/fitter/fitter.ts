@@ -2,7 +2,7 @@ import type { Token, TokenMetrics } from '../types.js';
 import { measureLine, measureAllTokenMetrics, getAdvanceWidth, computeLayout } from '../measure/index.js';
 import { FontManager, getFontMetrics } from '../fonts/index.js';
 import type { FitterConfig, BestFit, SearchContext } from './types.js';
-import { Score, FIT_TOLERANCE } from './types.js';
+import { FIT_TOLERANCE } from './types.js';
 import { findGreedyFit } from './greedy.js';
 import { findBalancedFit } from './balanced.js';
 
@@ -175,7 +175,6 @@ export default class Fitter {
 
         return {
             layout,
-            score: result.score,
             arrangements: result.arrangements,
             minTextHeight: minTightHeight * result.scale,
             maxTextHeight: maxTightHeight * result.scale,

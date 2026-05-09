@@ -1,4 +1,4 @@
-import type { Token, PositionedLayout, FontWeight, Alignment } from './types.js';
+import type { Token, FontWeight, Alignment } from './types.js';
 import type { FitterConfig } from './fitter/types.js';
 import { FontManager } from './fonts/index.js';
 import { layoutToSVG } from './measure/index.js';

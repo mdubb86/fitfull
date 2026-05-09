@@ -1,7 +1,15 @@
 import type { SearchContext, SearchResult } from './types.js';
-import { Score, FIT_TOLERANCE, SEARCH_PRECISION } from './types.js';
+import { FIT_TOLERANCE, SEARCH_PRECISION } from './types.js';
 import { getArrangementMetrics } from '../measure/index.js';
 import { buildGreedyArrangement } from './wrapping.js';
+
+type GreedyScore = { scale: number; lastLineRatio: number };
+
+function isBetterThan(a: GreedyScore, b: GreedyScore): boolean {
+    if (a.scale > b.scale) return true;
+    if (a.scale < b.scale) return false;
+    return a.lastLineRatio < b.lastLineRatio;
+}
 
 /** Greedy strategy: binary search for optimal scale, greedy line filling at each scale */
 export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
@@ -10,7 +18,7 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
 
     let bestScale = 0;
     let bestArrangement: import('../types.js').Token[][] = [];
-    let bestScore = new Score(0, [], ctx.wrap);
+    let bestScore: GreedyScore = { scale: 0, lastLineRatio: Infinity };
     let arrangements = 0;
 
     const tryScale = (scale: number): 'fit' | 'too_big' | 'too_small' => {
@@ -53,10 +61,15 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
         }
 
         if (fitsWidth && fitsHeight && fitsTextHeight && !tooFewLines && !tooManyLines) {
-            bestScale = scale;
-            bestArrangement = arrangement;
             const lineWidths = metrics.lineMetrics.map(lm => lm.width * scale);
-            bestScore = new Score(scale / ctx.maxScale, lineWidths, ctx.wrap);
+            const avg = lineWidths.reduce((a, b) => a + b, 0) / lineWidths.length;
+            const lastRatio = avg > 0 ? (lineWidths[lineWidths.length - 1] ?? 0) / avg : 0;
+            const candidate: GreedyScore = { scale: scale / ctx.maxScale, lastLineRatio: lastRatio };
+            if (isBetterThan(candidate, bestScore)) {
+                bestScale = scale;
+                bestArrangement = arrangement;
+                bestScore = candidate;
+            }
             return 'fit';
         }
 
@@ -90,6 +103,13 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
         const binarySearchBest = bestScale;
         const probeCount = 10;
         const probeStep = (ctx.maxScale - binarySearchBest) / probeCount;
+        // Linear probe above binary search result: greedy wrapping is non-monotone near
+        // wrap-count boundaries, so binary search alone can miss the true optimum.
+        if (probeStep === 0) return bestArrangement.length === 0 ? undefined : {
+            scale: bestScale,
+            arrangement: bestArrangement,
+            arrangements,
+        };
         for (let i = 1; i <= probeCount; i++) {
             const probeScale = binarySearchBest + i * probeStep;
             if (probeScale <= ctx.maxScale) {
@@ -103,7 +123,6 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
     return {
         scale: bestScale,
         arrangement: bestArrangement,
-        score: bestScore,
         arrangements,
     };
 }
