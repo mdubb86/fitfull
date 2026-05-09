@@ -168,7 +168,7 @@ export class Fitfull {
         text: string,
         size: number,
         font: string,
-        weight: 'regular' | 'bold' | 'italic' | 'bolditalic'
+        weight: FontWeight
     ): Token[] {
         const tokens: Token[] = [];
         const words = text.split(' ').filter(w => w.length > 0);

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { program } from 'commander';
+import { program, Option } from 'commander';
 import { extname } from 'node:path';
 import opentype from 'opentype.js';
 import { Resvg, initWasm } from '@resvg/resvg-wasm';
 import { createRequire } from 'node:module';
 import { fitfull, type FitOptions, type FitResult } from './fitfull.js';
-import type { Token } from './types.js';
+import type { Token, FontWeight } from './types.js';
 import { InputTokenArraySchema, inputTokensToTokens, parseFontString, mapWeight } from './schema.js';
 import { normalizeFamily } from './fonts/normalize.js';
 
@@ -53,13 +53,13 @@ function outputResult(result: FitResult, outputPath: string, elapsedMs: number) 
 }
 
 /** Parse font argument - returns system font name or indicates it's a file path */
-async function parseFontArg(fontArg: string): Promise<{ font: string; weight: 'regular' | 'bold' | 'italic' | 'bolditalic' }> {
+async function parseFontArg(fontArg: string): Promise<{ font: string; weight: FontWeight }> {
     if (existsSync(fontArg)) {
         const font = await opentype.load(fontArg);
         const family = font.names.fontFamily?.en || fontArg;
         const subfamily = (font.names.fontSubfamily?.en || 'Regular').toLowerCase();
 
-        let weight: 'regular' | 'bold' | 'italic' | 'bolditalic' = 'regular';
+        let weight: FontWeight = 'regular';
         const isBold = subfamily.includes('bold');
         const isItalic = subfamily.includes('italic') || subfamily.includes('oblique');
 
@@ -115,8 +115,8 @@ program
     .option('--text-height <number>', 'Fixed height for largest text in pixels (disables scale optimization)', parseFloat)
     .option('--max-text-height <number>', 'Maximum height for any text in pixels (constrains scale optimization)', parseFloat)
     .option('--line-spacing <number>', 'Line spacing multiplier', parseFloat, 1.0)
-    .option('-a, --align <alignment>', 'Horizontal alignment (left, center, right)', 'left')
-    .option('-w, --wrap <mode>', 'Line wrapping: balanced (even widths) or greedy (fill lines first)', 'balanced')
+    .addOption(new Option('-a, --align <alignment>', 'Horizontal alignment (left, center, right)').choices(['left', 'center', 'right']).default('left'))
+    .addOption(new Option('-w, --wrap <mode>', 'Line wrapping: balanced (even widths) or greedy (fill lines first)').choices(['balanced', 'greedy']).default('balanced'))
     .option('-c, --color <color>', 'Text color', '#000000')
     .option('-b, --background <color>', 'Background color (transparent if not set)')
     .option('--annotate', 'Show layout annotations (line bounds, token bounds, baselines)')

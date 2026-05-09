@@ -77,4 +77,30 @@ describe('Fitfull', () => {
         assert.strictEqual(result.height, 0);
         assert.strictEqual(result.arrangements, 0);
     });
+
+    test('fit rejects invalid color', async () => {
+        const ff = Fitfull.create();
+        await assert.rejects(
+            ff.fit({
+                text: 'Hello',
+                font: INTER_REGULAR,
+                width: 400,
+                height: 100,
+                color: 'red"/><script>alert(1)</script>',
+            }),
+            /Invalid color/
+        );
+    });
+
+    test('fit accepts valid hex color', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            text: 'Hello',
+            font: INTER_REGULAR,
+            width: 400,
+            height: 100,
+            color: '#ff0000',
+        });
+        assert.ok(result.svg.includes('ff0000'));
+    });
 });

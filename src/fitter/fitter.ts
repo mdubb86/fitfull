@@ -1,4 +1,4 @@
-import type { Token, TokenMetrics } from '../types.js';
+import type { Token, TokenMetrics, Alignment } from '../types.js';
 import { measureLine, measureAllTokenMetrics, getAdvanceWidth, computeLayout } from '../measure/index.js';
 import { FontManager, getFontMetrics } from '../fonts/index.js';
 import type { FitterConfig, BestFit, SearchContext } from './types.js';
@@ -17,7 +17,7 @@ export default class Fitter {
     private readonly lineSpacing: number;
     private readonly minLines: number;
     private readonly maxLines: number;
-    private readonly align: 'left' | 'center' | 'right';
+    private readonly align: Alignment;
     private readonly wrap: 'balanced' | 'greedy';
 
     constructor(

@@ -1,5 +1,15 @@
 import type { MeasuredLine, PositionedLayout } from '../types.js';
 
+const CSS_COLOR_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|[a-zA-Z]+)$/;
+
+function assertValidColor(value: string, field: string): void {
+    if (!CSS_COLOR_RE.test(value.trim())) {
+        throw new Error(
+            `Invalid ${field} color: "${value}". Use a CSS color (hex, rgb(), rgba(), hsl(), hsla(), or a named color).`
+        );
+    }
+}
+
 /**
  * Render a measured line to an SVG string
  */
@@ -19,6 +29,9 @@ export function lineToSVG(line: MeasuredLine, options: {
         showBorder = false,
         useTightBounds = true,
     } = options;
+
+    if (color) assertValidColor(color, 'color');
+    if (background) assertValidColor(background, 'background');
 
     const bbox = line.tightBbox;
 
@@ -72,6 +85,9 @@ export function layoutToSVG(
     } = {}
 ): string {
     const { padding = 0, background, color = 'black', annotate = false } = options;
+
+    if (options.color) assertValidColor(options.color, 'color');
+    if (options.background) assertValidColor(options.background, 'background');
 
     if (layout.lines.length === 0) {
         return '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"></svg>';
