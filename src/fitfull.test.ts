@@ -119,4 +119,38 @@ describe('Fitfull', () => {
         });
         assert.ok(result.svg.includes('ff0000'));
     });
+
+    test('fit throws when token count exceeds maxTokens', async () => {
+        const ff = Fitfull.create();
+        const manyTokens = Array.from({ length: 50 }, (_, i) => [
+            { text: `Word${i}`, size: 12, font: INTER_REGULAR, weight: 'regular' as const },
+            { text: ' ', size: 12, font: INTER_REGULAR, weight: 'regular' as const },
+        ]).flat();
+
+        await assert.rejects(
+            ff.fit({
+                tokens: manyTokens,
+                width: 400,
+                height: 100,
+                maxTokens: 10,
+            }),
+            /Input too large: 100 tokens \(max 10\)/
+        );
+    });
+
+    test('fit succeeds when token count equals maxTokens', async () => {
+        const ff = Fitfull.create();
+        const tokens = [
+            { text: 'Hello', size: 12, font: INTER_REGULAR, weight: 'regular' as const },
+            { text: ' ', size: 12, font: INTER_REGULAR, weight: 'regular' as const },
+            { text: 'World', size: 12, font: INTER_REGULAR, weight: 'regular' as const },
+        ];
+        const result = await ff.fit({
+            tokens,
+            width: 400,
+            height: 100,
+            maxTokens: 3,
+        });
+        assert.ok(result.lines.length >= 1);
+    });
 });

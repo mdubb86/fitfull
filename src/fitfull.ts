@@ -29,6 +29,8 @@ export type FitOptions = FitfullInput & {
     fonts?: string[];
     /** @internal Used by CLI to format the resolution hint message. */
     _hint?: 'cli' | 'api';
+    /** Maximum number of tokens. Default: 1000. Pass Infinity to disable. */
+    maxTokens?: number;
 
     // SVG rendering options
     color?: string;
@@ -93,6 +95,14 @@ export class Fitfull {
                 maxTextHeight: 0,
                 arrangements: 0,
             };
+        }
+
+        const maxTokens = options.maxTokens ?? 1000;
+        if (isFinite(maxTokens) && tokens.length > maxTokens) {
+            throw new Error(
+                `Input too large: ${tokens.length} tokens (max ${maxTokens}). ` +
+                `Reduce content or set maxTokens to increase the limit.`
+            );
         }
 
         // Ensure FontManager exists
