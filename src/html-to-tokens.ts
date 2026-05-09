@@ -1,5 +1,6 @@
 import { parseHTML } from 'linkedom';
 import type { Token } from './types.js';
+import { normalizeFamily } from './fonts/normalize.js';
 
 
 /** Internal style state, inherited through the DOM tree */
@@ -50,14 +51,6 @@ function cssFontStyleToItalic(value: string): boolean {
     return value === 'italic' || value === 'oblique';
 }
 
-function normalizeFontFamily(value: string): string {
-    // Take the first family from a comma-separated list
-    const first = value.split(',')[0].trim();
-    // Strip quotes
-    const unquoted = first.replace(/^['"]|['"]$/g, '');
-    // Normalize: lowercase, spaces to hyphens
-    return unquoted.toLowerCase().replace(/\s+/g, '-');
-}
 
 function parseInlineStyle(style: string): {
     fontSize?: string;
@@ -129,7 +122,7 @@ function walkNode(node: any, parentCtx: StyleContext, runs: StyledRun[]): void {
         const parsed = parseInlineStyle(style);
         if (parsed.fontSize) ctx.size = parseFontSize(parsed.fontSize, parentCtx.size);
         if (parsed.fontWeight) ctx.bold = cssFontWeightToBold(parsed.fontWeight);
-        if (parsed.fontFamily) ctx.font = normalizeFontFamily(parsed.fontFamily);
+        if (parsed.fontFamily) ctx.font = normalizeFamily(parsed.fontFamily);
         if (parsed.fontStyle) ctx.italic = cssFontStyleToItalic(parsed.fontStyle);
     }
 
@@ -304,7 +297,7 @@ export function htmlToTokens(html: string): Token[] {
 
     const rootCtx: StyleContext = {
         size: parseFontSize(parsed.fontSize, 16),
-        font: normalizeFontFamily(parsed.fontFamily),
+        font: normalizeFamily(parsed.fontFamily),
         bold: parsed.fontWeight ? cssFontWeightToBold(parsed.fontWeight) : false,
         italic: parsed.fontStyle ? cssFontStyleToItalic(parsed.fontStyle) : false,
     };

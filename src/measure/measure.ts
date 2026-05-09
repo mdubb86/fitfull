@@ -2,6 +2,7 @@ import type { Font } from 'opentype.js';
 import type { Token, MeasuredToken, MeasuredLine } from '../types.js';
 import { FontManager, getFontMetrics } from '../fonts/index.js';
 import { getAdvanceWidth } from './metrics.js';
+import { kerningBetween } from './kerning.js';
 
 /**
  * Measure a single token
@@ -80,13 +81,8 @@ export function measureLine(tokens: Token[], fonts: FontManager): MeasuredLine {
                 token.text.length > 0 && nextToken.text.length > 0) {
                 const lastChar = token.text.slice(-1);
                 const firstChar = nextToken.text[0];
-                const lastGlyph = font.charToGlyph(lastChar);
-                const firstGlyph = font.charToGlyph(firstChar);
-                const kernValue = font.getKerningValue(lastGlyph, firstGlyph);
-                if (kernValue !== 0) {
-                    const scale = token.size / font.unitsPerEm;
-                    x += kernValue * scale;
-                }
+                const scale = token.size / font.unitsPerEm;
+                x += kerningBetween(font, lastChar, firstChar, scale);
             }
         }
     }

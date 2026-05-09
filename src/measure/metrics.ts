@@ -2,6 +2,7 @@ import type { Font } from 'opentype.js';
 import type { Token, TokenMetrics, LineMetrics, ArrangementMetrics } from '../types.js';
 import type { FontManager } from '../fonts/index.js';
 import { getFontMetrics } from '../fonts/index.js';
+import { kerningBetween } from './kerning.js';
 
 /**
  * Calculate total height for lines.
@@ -50,8 +51,7 @@ export function getAdvanceWidth(font: Font, text: string, fontSize: number): num
 
         // Add kerning between this char and next
         if (i < text.length - 1) {
-            const nextGlyph = font.charToGlyph(text[i + 1]);
-            total += font.getKerningValue(glyph, nextGlyph) * scale;
+            total += kerningBetween(font, text[i], text[i + 1], scale);
         }
     }
 
@@ -115,8 +115,7 @@ export function getTightBounds(font: Font, text: string, fontSize: number): {
 
         // Add kerning between this char and next
         if (i < text.length - 1) {
-            const nextGlyph = font.charToGlyph(text[i + 1]);
-            x += font.getKerningValue(glyph, nextGlyph) * scale;
+            x += kerningBetween(font, text[i], text[i + 1], scale);
         }
     }
 

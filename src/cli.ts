@@ -9,6 +9,7 @@ import { createRequire } from 'node:module';
 import { fitfull, type FitOptions, type FitResult } from './fitfull.js';
 import type { Token } from './types.js';
 import { InputTokenArraySchema, inputTokensToTokens, parseFontString, mapWeight } from './schema.js';
+import { normalizeFamily } from './fonts/normalize.js';
 
 function status(msg: string) {
     console.error(`[fitfull] ${msg}`);
@@ -84,7 +85,7 @@ async function loadTokensFromFile(tokensArg: string, fontArgs: string[]): Promis
     for (const fontArg of fontArgs) {
         if (existsSync(fontArg)) {
             const { font } = await parseFontArg(fontArg);
-            const familyKey = font.toLowerCase().replace(/\s+/g, '-');
+            const familyKey = normalizeFamily(font);
             familyMap.set(font.toLowerCase(), familyKey);
         }
     }
@@ -92,7 +93,7 @@ async function loadTokensFromFile(tokensArg: string, fontArgs: string[]): Promis
     const resolver = (family: string): string => {
         const key = familyMap.get(family.toLowerCase());
         if (key) return key;
-        return family.toLowerCase().replace(/\s+/g, '-');
+        return normalizeFamily(family);
     };
 
     return inputTokensToTokens(inputTokens, resolver);

@@ -7,6 +7,7 @@ import type { FontMap } from '../types.js';
 import type { FontWeight } from '../types.js';
 import type { FontConfig } from './types.js';
 import { buildKerningLookup } from './font-metrics.js';
+import { normalizeFamily } from './normalize.js';
 
 // Helper to safely get string from font name table entry
 function getNameString(entry: unknown): string {
@@ -213,7 +214,7 @@ export class FontManager {
         // Extract unique font/weight combinations
         const required = new Map<string, Set<string>>();
         for (const token of tokens) {
-            const familyKey = token.font.toLowerCase().replace(/\s+/g, '-');
+            const familyKey = normalizeFamily(token.font);
             if (!required.has(familyKey)) {
                 required.set(familyKey, new Set());
             }
@@ -242,7 +243,7 @@ export class FontManager {
 
                 // Need to load - find original font name for system font lookup
                 const originalName = tokens.find(t =>
-                    t.font.toLowerCase().replace(/\s+/g, '-') === family &&
+                    normalizeFamily(t.font) === family &&
                     t.weight === weight
                 )?.font || family;
 
@@ -301,7 +302,7 @@ export class FontManager {
      * Get font for a specific family and weight
      */
     getFont(family: string, weight: string): Font {
-        const familyKey = family.toLowerCase().replace(/\s+/g, '-');
+        const familyKey = normalizeFamily(family);
         const familyFonts = this.fonts[familyKey];
 
         if (!familyFonts) {
