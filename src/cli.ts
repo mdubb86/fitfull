@@ -117,6 +117,7 @@ program
     .option('--line-spacing <number>', 'Line spacing multiplier', parseFloat, 1.0)
     .addOption(new Option('-a, --align <alignment>', 'Horizontal alignment (left, center, right)').choices(['left', 'center', 'right']).default('left'))
     .addOption(new Option('-w, --wrap <mode>', 'Line wrapping: balanced (even widths) or greedy (fill lines first)').choices(['balanced', 'greedy']).default('balanced'))
+    .option('--max-tokens <n>', 'Maximum number of tokens (default: 1000)', (v) => parseInt(v, 10))
     .option('-c, --color <color>', 'Text color', '#000000')
     .option('-b, --background <color>', 'Background color (transparent if not set)')
     .option('--annotate', 'Show layout annotations (line bounds, token bounds, baselines)')
@@ -179,6 +180,7 @@ program
                     wrap: opts.wrap,
                     fonts: opts.font,
                     _hint: 'cli' as const,
+                    maxTokens: opts.maxTokens,
                 };
             } else if (opts.html) {
                 // HTML mode - HTML must have its own styling
@@ -196,6 +198,7 @@ program
                     wrap: opts.wrap,
                     fonts: opts.font,
                     _hint: 'cli' as const,
+                    maxTokens: opts.maxTokens,
                 };
             } else {
                 // Text mode
@@ -220,6 +223,7 @@ program
                     wrap: opts.wrap,
                     fonts: opts.font,
                     _hint: 'cli' as const,
+                    maxTokens: opts.maxTokens,
                 };
             }
 
