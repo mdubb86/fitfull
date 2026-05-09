@@ -104,18 +104,11 @@ async function buildSystemFontIndexes(): Promise<void> {
 }
 
 /**
- * Wrap buildSystemFontIndexes with a single console.warn suppression for the entire pass.
- * opentype.js emits console.warn for font-parsing quirks with no suppression API.
+ * Ensure the system font index is built. Warn suppression is handled by the caller
+ * so that opentype.js warnings are silenced for the entire system-scan phase.
  */
 async function ensureSystemIndex(): Promise<void> {
-    if (primaryIndex) return;
-    const originalWarn = console.warn;
-    console.warn = () => {};
-    try {
-        await buildSystemFontIndexes();
-    } finally {
-        console.warn = originalWarn;
-    }
+    return buildSystemFontIndexes();
 }
 
 /**
@@ -292,9 +285,13 @@ export class FontManager {
         const { explicitPaths = [], hint = 'api' } = options;
 
         // Layer 1: register explicit font files directly
+        const failedPaths: string[] = [];
         for (const fontPath of explicitPaths) {
             const font = await loadFont(fontPath);
-            if (!font) continue;
+            if (!font) {
+                failedPaths.push(fontPath);
+                continue;
+            }
             const family = (
                 getNameString((font.names as any).preferredFamily) ||
                 getNameString(font.names.fontFamily)
@@ -304,6 +301,12 @@ export class FontManager {
             if (!family) continue;
             if (!this.fonts[family]) this.fonts[family] = {};
             this.fonts[family][weight] = font;
+        }
+        if (failedPaths.length > 0) {
+            console.error(
+                `[fitfull] Could not load ${failedPaths.length} explicit font file(s):\n` +
+                failedPaths.map(p => `  ${p}`).join('\n')
+            );
         }
 
         // Extract unique font/weight combinations
@@ -360,25 +363,32 @@ export class FontManager {
         const systemResolved: Array<{ family: string; path: string }> = [];
         const scanStart = performance.now();
 
-        for (const { family, weight, originalName } of toResolve) {
-            try {
-                // Try exact-match via system index first
-                let resolvedPath = await resolveFontPath(originalName, weight);
-                if (!resolvedPath) {
-                    // Fuzzy fallback: try filename pre-filter then full scan
-                    resolvedPath = await findInSystemFonts(originalName.toLowerCase(), allSystemPaths);
-                    if (resolvedPath) {
-                        systemResolved.push({ family, path: resolvedPath });
+        // Suppress opentype.js console.warn for all system font loading (index build + fuzzy scan)
+        const originalWarn = console.warn;
+        console.warn = () => {};
+        try {
+            for (const { family, weight, originalName } of toResolve) {
+                try {
+                    // Try exact-match via system index first
+                    let resolvedPath = await resolveFontPath(originalName, weight);
+                    if (!resolvedPath) {
+                        // Fuzzy fallback: try filename pre-filter then full scan
+                        resolvedPath = await findInSystemFonts(originalName.toLowerCase(), allSystemPaths);
+                        if (resolvedPath) {
+                            systemResolved.push({ family, path: resolvedPath });
+                        }
                     }
+                    if (resolvedPath) {
+                        resolved.push({ family, weight, path: resolvedPath });
+                    } else {
+                        errors.push(`[${family}/${weight}] Font "${originalName}" not found. Make sure it's installed or pass the font file path directly.`);
+                    }
+                } catch (e: any) {
+                    errors.push(`[${family}/${weight}] ${e.message}`);
                 }
-                if (resolvedPath) {
-                    resolved.push({ family, weight, path: resolvedPath });
-                } else {
-                    errors.push(`[${family}/${weight}] Font "${originalName}" not found. Make sure it's installed or pass the font file path directly.`);
-                }
-            } catch (e: any) {
-                errors.push(`[${family}/${weight}] ${e.message}`);
             }
+        } finally {
+            console.warn = originalWarn;
         }
 
         if (errors.length > 0) {
