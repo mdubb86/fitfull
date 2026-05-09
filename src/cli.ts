@@ -49,7 +49,7 @@ function outputResult(result: FitResult, outputPath: string, elapsedMs: number) 
 }
 
 /** Parse font argument - returns system font name or indicates it's a file path */
-async function parseFontArg(fontArg: string): Promise<{ font: string; weight: 'regular' | 'bold' | 'italic' | 'bolditalic'; isPath: boolean }> {
+async function parseFontArg(fontArg: string): Promise<{ font: string; weight: 'regular' | 'bold' | 'italic' | 'bolditalic' }> {
     if (existsSync(fontArg)) {
         const font = await opentype.load(fontArg);
         const family = font.names.fontFamily?.en || fontArg;
@@ -63,11 +63,11 @@ async function parseFontArg(fontArg: string): Promise<{ font: string; weight: 'r
         else if (isBold) weight = 'bold';
         else if (isItalic) weight = 'italic';
 
-        return { font: family, weight, isPath: true };
+        return { font: family, weight };
     } else {
         const parsed = parseFontString(fontArg);
         const weight = mapWeight(parsed.weight, parsed.style);
-        return { font: parsed.family, weight, isPath: false };
+        return { font: parsed.family, weight };
     }
 }
 
@@ -132,7 +132,6 @@ program
             }
 
             const { width, height } = parseSize(opts.size);
-            const defaultFontSize = 12;
 
             // Determine line constraints
             let minLines: number | undefined;
