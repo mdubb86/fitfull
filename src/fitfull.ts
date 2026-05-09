@@ -25,6 +25,10 @@ export type FitOptions = FitfullInput & {
     lineSpacing?: number;
     align?: Alignment;
     wrap?: 'balanced' | 'greedy';
+    /** Font file paths to pre-load. Prevents system font scanning if all needed fonts are covered. */
+    fonts?: string[];
+    /** @internal Used by CLI to format the resolution hint message. */
+    _hint?: 'cli' | 'api';
 
     // SVG rendering options
     color?: string;
@@ -97,7 +101,10 @@ export class Fitfull {
         }
 
         // Load any fonts needed by these tokens
-        await this.fonts.loadForTokens(tokens);
+        await this.fonts.loadForTokens(tokens, {
+            explicitPaths: options.fonts ?? [],
+            hint: options._hint ?? 'api',
+        });
 
         // Build fitter config
         const config: FitterConfig = {

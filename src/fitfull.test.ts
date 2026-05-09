@@ -92,6 +92,22 @@ describe('Fitfull', () => {
         );
     });
 
+    test('fit accepts fonts array for token mode', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            tokens: [
+                { text: 'Hello', size: 12, font: 'inter', weight: 'regular' },
+                { text: ' ', size: 12, font: 'inter', weight: 'regular' },
+                { text: 'World', size: 12, font: 'inter', weight: 'regular' },
+            ],
+            fonts: [INTER_REGULAR],
+            width: 400,
+            height: 100,
+        });
+        assert.ok(result.svg.startsWith('<svg'));
+        assert.ok(result.lines.length >= 1);
+    });
+
     test('fit accepts valid hex color', async () => {
         const ff = Fitfull.create();
         const result = await ff.fit({
