@@ -8,6 +8,10 @@ import type { FontWeight } from '../types.js';
 import type { FontConfig } from './types.js';
 import { buildKerningLookup } from './font-metrics.js';
 import { normalizeFamily } from './normalize.js';
+import pMap from 'p-map';
+import fuzzysort from 'fuzzysort';
+import { basename, extname } from 'node:path';
+import { performance } from 'node:perf_hooks';
 
 // Helper to safely get string from font name table entry
 function getNameString(entry: unknown): string {
@@ -19,19 +23,33 @@ function getNameString(entry: unknown): string {
     return '';
 }
 
-// Suppress opentype.js kern warnings during font loading
-async function loadFontQuiet(path: string): Promise<Font> {
-    const originalWarn = console.warn;
-    console.warn = (...args: unknown[]) => {
-        if (typeof args[0] === 'string' && args[0].includes('kern subtable')) return;
-        originalWarn.apply(console, args);
-    };
+async function loadFont(fontPath: string): Promise<opentype.Font | null> {
     try {
-        return await opentype.load(path);
-    } finally {
-        console.warn = originalWarn;
+        return await opentype.load(fontPath);
+    } catch {
+        return null;
     }
 }
+
+function normalizeForMatch(s: string): string {
+    return s.toLowerCase().replace(/[\s\-_]/g, '');
+}
+
+/** Map subfamily strings to canonical token weight keys */
+const subfamilyToWeight: Record<string, string> = {
+    regular: 'regular',
+    normal: 'regular',
+    book: 'regular',
+    roman: 'regular',
+    bold: 'bold',
+    heavy: 'bold',
+    black: 'bold',
+    italic: 'italic',
+    oblique: 'italic',
+    'bold italic': 'bolditalic',
+    bolditalic: 'bolditalic',
+    'bold oblique': 'bolditalic',
+};
 
 /** Cached system font indexes */
 let primaryIndex: Map<string, Map<string, string>> | null = null;
@@ -52,45 +70,95 @@ async function buildSystemFontIndexes(): Promise<void> {
         const primary = new Map<string, Map<string, string>>();
         const secondary = new Map<string, Map<string, string>>();
         const paths = await getSystemFonts();
-        console.error(`[font-manager] getSystemFonts returned ${paths.length} paths`);
 
-        for (const path of paths) {
-            // Skip font collections (.ttc) - opentype.js doesn't support them
-            if (path.toLowerCase().endsWith('.ttc')) continue;
+        const filteredPaths = paths.filter((p: string) => !p.toLowerCase().endsWith('.ttc'));
 
-            try {
-                const font = await loadFontQuiet(path);
-                const preferredFamily = getNameString((font.names as any).preferredFamily).toLowerCase();
-                const family = getNameString(font.names.fontFamily).toLowerCase();
-                const subfamily = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
+        await pMap(filteredPaths, async (fontPath: string) => {
+            const font = await loadFont(fontPath);
+            if (!font) return;
 
-                if (preferredFamily) {
-                    if (!primary.has(preferredFamily)) {
-                        primary.set(preferredFamily, new Map());
-                    }
-                    primary.get(preferredFamily)!.set(subfamily, path);
+            const preferredFamily = getNameString((font.names as any).preferredFamily).toLowerCase();
+            const family = getNameString(font.names.fontFamily).toLowerCase();
+            const subfamily = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
+
+            if (preferredFamily) {
+                if (!primary.has(preferredFamily)) {
+                    primary.set(preferredFamily, new Map());
                 }
-
-                if (family) {
-                    if (!secondary.has(family)) {
-                        secondary.set(family, new Map());
-                    }
-                    secondary.get(family)!.set(subfamily, path);
-                }
-            } catch (e: any) {
-                // Log first failure to help debug
-                if (primary.size === 0 && secondary.size === 0) {
-                    console.error(`[font-manager] first font load failure: ${path}`, e?.message);
-                }
+                primary.get(preferredFamily)!.set(subfamily, fontPath);
             }
-        }
 
-        console.error(`[font-manager] indexed ${primary.size} preferred families, ${secondary.size} font families`);
+            if (family) {
+                if (!secondary.has(family)) {
+                    secondary.set(family, new Map());
+                }
+                secondary.get(family)!.set(subfamily, fontPath);
+            }
+        }, { concurrency: 32 });
+
         primaryIndex = primary;
         secondaryIndex = secondary;
     })();
 
     return indexPromise;
+}
+
+/**
+ * Wrap buildSystemFontIndexes with a single console.warn suppression for the entire pass.
+ * opentype.js emits console.warn for font-parsing quirks with no suppression API.
+ */
+async function ensureSystemIndex(): Promise<void> {
+    if (primaryIndex) return;
+    const originalWarn = console.warn;
+    console.warn = () => {};
+    try {
+        await buildSystemFontIndexes();
+    } finally {
+        console.warn = originalWarn;
+    }
+}
+
+/**
+ * Find a font family in system fonts using fuzzy pre-filter then full scan fallback.
+ */
+async function findInSystemFonts(
+    family: string,
+    allPaths: string[]
+): Promise<string | null> {
+    const normalizedFamily = normalizeForMatch(family);
+
+    // Layer 2: fuzzy filename pre-filter
+    const candidates = fuzzysort
+        .go(normalizedFamily, allPaths, {
+            key: (p: string) => normalizeForMatch(basename(p, extname(p))),
+            threshold: -1000,
+            limit: 10,
+        })
+        .map((r) => r.obj);
+
+    for (const candidate of candidates) {
+        if (candidate.toLowerCase().endsWith('.ttc')) continue;
+        const font = await loadFont(candidate);
+        if (!font) continue;
+        const pf = getNameString((font.names as any).preferredFamily).toLowerCase();
+        const ff = getNameString(font.names.fontFamily).toLowerCase();
+        if (pf === family || ff === family) return candidate;
+    }
+
+    // Layer 3: full scan fallback — check remaining paths
+    const candidateSet = new Set(candidates);
+    const remaining = allPaths.filter(
+        (p) => !candidateSet.has(p) && !p.toLowerCase().endsWith('.ttc')
+    );
+    for (const fontPath of remaining) {
+        const font = await loadFont(fontPath);
+        if (!font) continue;
+        const pf = getNameString((font.names as any).preferredFamily).toLowerCase();
+        const ff = getNameString(font.names.fontFamily).toLowerCase();
+        if (pf === family || ff === family) return fontPath;
+    }
+
+    return null;
 }
 
 /**
@@ -112,7 +180,7 @@ async function resolveFontPath(ref: string, weight: string): Promise<string> {
     }
 
     // Otherwise, look up in system fonts (preferredFamily first, then fontFamily)
-    await buildSystemFontIndexes();
+    await ensureSystemIndex();
     const familyMap = primaryIndex!.get(ref.toLowerCase()) ?? secondaryIndex!.get(ref.toLowerCase());
 
     if (!familyMap) {
@@ -208,9 +276,30 @@ export class FontManager {
      * Safe to call concurrently - duplicate loads are deduplicated.
      *
      * @param tokens - Array of tokens to scan for font requirements
+     * @param options - Optional explicit font paths (Layer 1) and hint for log messages
      * @throws Error if any required font cannot be found
      */
-    async loadForTokens(tokens: import('../types.js').Token[]): Promise<void> {
+    async loadForTokens(
+        tokens: import('../types.js').Token[],
+        options: { explicitPaths?: string[]; hint?: 'cli' | 'api' } = {}
+    ): Promise<void> {
+        const { explicitPaths = [], hint = 'api' } = options;
+
+        // Layer 1: register explicit font files directly
+        for (const fontPath of explicitPaths) {
+            const font = await loadFont(fontPath);
+            if (!font) continue;
+            const family = (
+                getNameString((font.names as any).preferredFamily) ||
+                getNameString(font.names.fontFamily)
+            ).toLowerCase();
+            const subfamilyRaw = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
+            const weight = subfamilyToWeight[subfamilyRaw] ?? 'regular';
+            if (!family) continue;
+            if (!this.fonts[family]) this.fonts[family] = {};
+            this.fonts[family][weight] = font;
+        }
+
         // Extract unique font/weight combinations
         const required = new Map<string, Set<string>>();
         for (const token of tokens) {
@@ -252,7 +341,7 @@ export class FontManager {
         }
 
         if (toResolve.length === 0 && toAwait.length === 0) {
-            return; // All fonts already loaded
+            return; // All fonts already loaded (including via Layer 1)
         }
 
         // First pass: resolve all paths and validate (fail-fast)
@@ -296,6 +385,44 @@ export class FontManager {
 
         // Wait for all loads to complete
         await Promise.all(toAwait.map(({ promise }) => promise));
+
+        // Collect families still unresolved after Layer 1 and existing cache
+        const requiredRefs = Array.from(required.keys()).map(family => ({ family }));
+        const stillUnresolved = requiredRefs.filter(ref => !this.fonts[ref.family]);
+
+        if (stillUnresolved.length > 0) {
+            const scanStart = performance.now();
+            const allPaths = await getSystemFonts();
+            const systemResolved: Array<{ family: string; path: string }> = [];
+            let scanned = 0;
+
+            for (const ref of stillUnresolved) {
+                if (this.fonts[ref.family]) continue; // may have been resolved by prior iteration
+                await ensureSystemIndex();
+                const resolvedPath = await findInSystemFonts(ref.family, allPaths);
+                scanned = allPaths.length;
+                if (resolvedPath) {
+                    const font = await opentype.load(resolvedPath);
+                    const subfamilyRaw = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
+                    const weight = subfamilyToWeight[subfamilyRaw] ?? 'regular';
+                    if (!this.fonts[ref.family]) this.fonts[ref.family] = {};
+                    this.fonts[ref.family][weight] = font;
+                    systemResolved.push({ family: ref.family, path: resolvedPath });
+                }
+            }
+
+            if (systemResolved.length > 0) {
+                const elapsed = (performance.now() - scanStart).toFixed(1);
+                const pathLines = hint === 'cli'
+                    ? systemResolved.map(r => `  --font ${r.path}`).join('\n')
+                    : `  fonts: [${systemResolved.map(r => `"${r.path}"`).join(', ')}]`;
+                console.error(
+                    `[fitfull] Scanned ${scanned} system fonts to resolve ` +
+                    `${systemResolved.length} ${systemResolved.length === 1 ? 'family' : 'families'} ` +
+                    `(${elapsed}ms). Add these to skip next time:\n${pathLines}`
+                );
+            }
+        }
     }
 
     /**
