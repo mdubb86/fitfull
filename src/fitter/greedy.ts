@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import type { SearchContext, SearchResult } from './types.js';
 import { FIT_TOLERANCE, SEARCH_PRECISION } from './types.js';
 import { getArrangementMetrics } from '../measure/index.js';
@@ -22,6 +23,12 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
     let arrangements = 0;
 
     const tryScale = (scale: number): 'fit' | 'too_big' | 'too_small' => {
+        if (performance.now() > ctx.deadline) {
+            throw new Error(
+                `Fit timed out with ${arrangements} arrangements evaluated. ` +
+                `Reduce input size or increase timeout.`
+            );
+        }
         arrangements++;
 
         // Build greedy arrangement for this scale

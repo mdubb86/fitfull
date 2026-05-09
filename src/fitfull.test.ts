@@ -153,4 +153,23 @@ describe('Fitfull', () => {
         });
         assert.ok(result.lines.length >= 1);
     });
+
+    test('fit throws on timeout', async () => {
+        const ff = Fitfull.create();
+        const tokens = Array.from({ length: 100 }, (_, i) => [
+            { text: `Word${i}`, size: 12, font: INTER_REGULAR, weight: 'regular' as const },
+            { text: ' ', size: 12, font: INTER_REGULAR, weight: 'regular' as const },
+        ]).flat();
+
+        await assert.rejects(
+            ff.fit({
+                tokens,
+                width: 400,
+                height: 100,
+                maxTokens: Infinity, // disable token cap
+                timeout: 1,          // 1ms — fires immediately
+            }),
+            /Fit timed out/
+        );
+    });
 });

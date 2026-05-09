@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import type { SearchContext, SearchResult } from './types.js';
 import { FIT_TOLERANCE } from './types.js';
 import { getArrangementMetrics } from '../measure/index.js';
@@ -19,6 +20,12 @@ export function findBalancedFit(ctx: SearchContext): SearchResult | undefined {
     let arrangements = 0;
 
     for (const arrangement of generateSmartArrangements(ctx.tokens, ctx.cumulativeWidths, ctx.totalTokenWidth, ctx.minLines, ctx.maxLines)) {
+        if (performance.now() > ctx.deadline) {
+            throw new Error(
+                `Fit timed out with ${arrangements} arrangements evaluated. ` +
+                `Reduce input size or increase timeout.`
+            );
+        }
         const trimmed = arrangement.map(line => trimLineWhitespace(line));
         if (trimmed.some(line => line.length === 0)) continue;
 
