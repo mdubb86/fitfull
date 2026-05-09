@@ -171,9 +171,11 @@ function isFilePath(str: string): boolean {
 }
 
 /**
- * Resolve a font reference (path or name) to an actual file path
+ * Resolve a font reference (path or name) to an actual file path.
+ * Returns null if the family is not found in the system index (instead of throwing),
+ * so callers can fall through to findInSystemFonts as a fuzzy fallback.
  */
-async function resolveFontPath(ref: string, weight: string): Promise<string> {
+async function resolveFontPath(ref: string, weight: string): Promise<string | null> {
     // If it's already a file path, return it
     if (isFilePath(ref)) {
         return ref;
@@ -184,7 +186,7 @@ async function resolveFontPath(ref: string, weight: string): Promise<string> {
     const familyMap = primaryIndex!.get(ref.toLowerCase()) ?? secondaryIndex!.get(ref.toLowerCase());
 
     if (!familyMap) {
-        throw new Error(`System font "${ref}" not found. Make sure it's installed.`);
+        return null;
     }
 
     // Map weight names to subfamily names
@@ -242,7 +244,11 @@ export class FontManager {
                 if (!ref) continue;
                 try {
                     const path = await resolveFontPath(ref, weight);
-                    familyPaths.set(weight, path);
+                    if (path === null) {
+                        errors.push(`[${family}/${weight}] System font "${ref}" not found. Make sure it's installed.`);
+                    } else {
+                        familyPaths.set(weight, path);
+                    }
                 } catch (e: any) {
                     errors.push(`[${family}/${weight}] ${e.message}`);
                 }
@@ -344,14 +350,32 @@ export class FontManager {
             return; // All fonts already loaded (including via Layer 1)
         }
 
+        // Fetch all system font paths once — needed as fallback for findInSystemFonts (Layer 2+3)
+        const allSystemPaths = await getSystemFonts();
+
         // First pass: resolve all paths and validate (fail-fast)
+        // Layer 2: exact match via system index; Layer 3: fuzzy fallback via findInSystemFonts
         const resolved: Array<{ family: string; weight: string; path: string }> = [];
         const errors: string[] = [];
+        const systemResolved: Array<{ family: string; path: string }> = [];
+        const scanStart = performance.now();
 
         for (const { family, weight, originalName } of toResolve) {
             try {
-                const path = await resolveFontPath(originalName, weight);
-                resolved.push({ family, weight, path });
+                // Try exact-match via system index first
+                let resolvedPath = await resolveFontPath(originalName, weight);
+                if (!resolvedPath) {
+                    // Fuzzy fallback: try filename pre-filter then full scan
+                    resolvedPath = await findInSystemFonts(originalName.toLowerCase(), allSystemPaths);
+                    if (resolvedPath) {
+                        systemResolved.push({ family, path: resolvedPath });
+                    }
+                }
+                if (resolvedPath) {
+                    resolved.push({ family, weight, path: resolvedPath });
+                } else {
+                    errors.push(`[${family}/${weight}] Font "${originalName}" not found. Make sure it's installed or pass the font file path directly.`);
+                }
             } catch (e: any) {
                 errors.push(`[${family}/${weight}] ${e.message}`);
             }
@@ -359,6 +383,18 @@ export class FontManager {
 
         if (errors.length > 0) {
             throw new Error(`Font validation failed:\n  ${errors.join('\n  ')}`);
+        }
+
+        if (systemResolved.length > 0) {
+            const elapsed = (performance.now() - scanStart).toFixed(1);
+            const pathLines = hint === 'cli'
+                ? systemResolved.map(r => `  --font ${r.path}`).join('\n')
+                : `  fonts: [${systemResolved.map(r => `"${r.path}"`).join(', ')}]`;
+            console.error(
+                `[fitfull] Scanned ${allSystemPaths.length} system fonts to resolve ` +
+                `${systemResolved.length} ${systemResolved.length === 1 ? 'family' : 'families'} ` +
+                `(${elapsed}ms). Add these to skip next time:\n${pathLines}`
+            );
         }
 
         // Second pass: load fonts (create promises and register in pendingLoads)
@@ -385,44 +421,6 @@ export class FontManager {
 
         // Wait for all loads to complete
         await Promise.all(toAwait.map(({ promise }) => promise));
-
-        // Collect families still unresolved after Layer 1 and existing cache
-        const requiredRefs = Array.from(required.keys()).map(family => ({ family }));
-        const stillUnresolved = requiredRefs.filter(ref => !this.fonts[ref.family]);
-
-        if (stillUnresolved.length > 0) {
-            const scanStart = performance.now();
-            const allPaths = await getSystemFonts();
-            const systemResolved: Array<{ family: string; path: string }> = [];
-            let scanned = 0;
-
-            for (const ref of stillUnresolved) {
-                if (this.fonts[ref.family]) continue; // may have been resolved by prior iteration
-                await ensureSystemIndex();
-                const resolvedPath = await findInSystemFonts(ref.family, allPaths);
-                scanned = allPaths.length;
-                if (resolvedPath) {
-                    const font = await opentype.load(resolvedPath);
-                    const subfamilyRaw = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
-                    const weight = subfamilyToWeight[subfamilyRaw] ?? 'regular';
-                    if (!this.fonts[ref.family]) this.fonts[ref.family] = {};
-                    this.fonts[ref.family][weight] = font;
-                    systemResolved.push({ family: ref.family, path: resolvedPath });
-                }
-            }
-
-            if (systemResolved.length > 0) {
-                const elapsed = (performance.now() - scanStart).toFixed(1);
-                const pathLines = hint === 'cli'
-                    ? systemResolved.map(r => `  --font ${r.path}`).join('\n')
-                    : `  fonts: [${systemResolved.map(r => `"${r.path}"`).join(', ')}]`;
-                console.error(
-                    `[fitfull] Scanned ${scanned} system fonts to resolve ` +
-                    `${systemResolved.length} ${systemResolved.length === 1 ? 'family' : 'families'} ` +
-                    `(${elapsed}ms). Add these to skip next time:\n${pathLines}`
-                );
-            }
-        }
     }
 
     /**
