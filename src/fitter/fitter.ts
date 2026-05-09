@@ -19,6 +19,7 @@ export default class Fitter {
     private readonly maxLines: number;
     private readonly align: Alignment;
     private readonly wrap: 'balanced' | 'greedy';
+    private readonly deadline: number;
 
     constructor(
         tokens: Token[],
@@ -41,6 +42,7 @@ export default class Fitter {
         this.lineSpacing = config.lineSpacing ?? 1.0;
         this.align = config.align;
         this.wrap = config.wrap ?? 'balanced';
+        this.deadline = config.deadline ?? Infinity;
 
         // Estimate optimal line count from text ribbon / box aspect ratio.
         const largestTokenSize = Math.max(...tokens.map(t => t.size));
@@ -135,6 +137,7 @@ export default class Fitter {
             cumulativeWidths,
             totalTokenWidth,
             maxTextHeight: this.maxTextHeight,
+            deadline: this.deadline,
         };
 
         const result = this.wrap === 'greedy'

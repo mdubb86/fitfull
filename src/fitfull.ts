@@ -1,3 +1,4 @@
+import { performance } from 'node:perf_hooks';
 import type { Token, FontWeight, Alignment } from './types.js';
 import type { FitterConfig } from './fitter/types.js';
 import { FontManager } from './fonts/index.js';
@@ -31,6 +32,8 @@ export type FitOptions = FitfullInput & {
     _hint?: 'cli' | 'api';
     /** Maximum number of tokens. Default: 1000. Pass Infinity to disable. */
     maxTokens?: number;
+    /** Maximum fit duration in milliseconds. Default: 10000. Pass Infinity to disable. */
+    timeout?: number;
 
     // SVG rendering options
     color?: string;
@@ -116,6 +119,9 @@ export class Fitfull {
             hint: options._hint ?? 'api',
         });
 
+        const timeout = options.timeout ?? 10_000;
+        const deadline = isFinite(timeout) ? performance.now() + timeout : Infinity;
+
         // Build fitter config
         const config: FitterConfig = {
             textHeight: options.textHeight,
@@ -125,6 +131,7 @@ export class Fitfull {
             lineSpacing: options.lineSpacing ?? 1.0,
             align: options.align ?? 'left',
             wrap: options.wrap ?? 'balanced',
+            deadline,
         };
 
         // Run the fitter

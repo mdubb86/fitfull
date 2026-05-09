@@ -15,6 +15,8 @@ export type FitterConfig = {
     lineSpacing?: number;
     align: Alignment;
     wrap?: 'balanced' | 'greedy';
+    /** Absolute performance.now() timestamp at which to abort. Use Infinity to disable. */
+    deadline?: number;
 };
 
 /** Shared inputs for strategy functions */
@@ -32,6 +34,8 @@ export type SearchContext = {
     cumulativeWidths: number[];
     totalTokenWidth: number;
     maxTextHeight?: number;
+    /** Absolute performance.now() timestamp at which to abort. Use Infinity to disable. */
+    deadline: number;
 };
 
 /** Shared outputs from strategy functions */
