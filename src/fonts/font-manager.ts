@@ -144,7 +144,6 @@ async function resolveFontPath(ref: string, weight: string): Promise<string> {
  */
 export class FontManager {
     private fonts: { [family: string]: FontMap } = {};
-    private defaultFamily: string = '';
     /** In-flight load promises to deduplicate concurrent requests */
     private pendingLoads: Map<string, Promise<Font>> = new Map();
 
@@ -195,11 +194,6 @@ export class FontManager {
             }
 
             manager.fonts[family] = fontMap;
-
-            // Set first family as default
-            if (!manager.defaultFamily) {
-                manager.defaultFamily = family;
-            }
         }
 
         return manager;
@@ -288,11 +282,6 @@ export class FontManager {
                 this.fonts[family][weight] = font;
                 this.pendingLoads.delete(key);
 
-                // Set first family as default if not set
-                if (!this.defaultFamily) {
-                    this.defaultFamily = family;
-                }
-
                 return font;
             }).catch(err => {
                 this.pendingLoads.delete(key);
@@ -323,21 +312,6 @@ export class FontManager {
             throw new Error(`Font weight "${weight}" not found in family "${family}". Available: ${Object.keys(familyFonts).join(', ')}`);
         }
         return font;
-    }
-
-    /**
-     * Get list of loaded family names
-     */
-    get families(): string[] {
-        return Object.keys(this.fonts);
-    }
-
-    /**
-     * Get list of weights for a family
-     */
-    getWeights(family: string): string[] {
-        const familyFonts = this.fonts[family];
-        return familyFonts ? Object.keys(familyFonts) : [];
     }
 
     /**
