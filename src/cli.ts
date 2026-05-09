@@ -107,7 +107,7 @@ program
     .option('--text <string>', 'Text to render (simple mode)')
     .option('--tokens <file>', 'JSON token file, or - for stdin (token mode)')
     .option('--html <file>', 'HTML file, or - for stdin (HTML mode)')
-    .option('--font <file>', 'Font: file path or "Family Weight" (repeatable)', (v, p: string[]) => p.concat([v]), [] as string[])
+    .option('--font <file>', 'Font file path or "Family Weight" (repeatable, applies to all modes)', (v, p: string[]) => p.concat([v]), [] as string[])
     .option('-o, --output <file>', 'Output file path', 'output.png')
     .option('--lines <number>', 'Use exact line count (omit to auto-compute)', (v) => parseInt(v, 10))
     .option('--min-lines <number>', 'Minimum number of lines (for auto mode)', (v) => parseInt(v, 10))
@@ -177,6 +177,8 @@ program
                     lineSpacing: opts.lineSpacing,
                     align: opts.align,
                     wrap: opts.wrap,
+                    fonts: opts.font,
+                    _hint: 'cli' as const,
                 };
             } else if (opts.html) {
                 // HTML mode - HTML must have its own styling
@@ -192,6 +194,8 @@ program
                     lineSpacing: opts.lineSpacing,
                     align: opts.align,
                     wrap: opts.wrap,
+                    fonts: opts.font,
+                    _hint: 'cli' as const,
                 };
             } else {
                 // Text mode
@@ -214,6 +218,8 @@ program
                     lineSpacing: opts.lineSpacing,
                     align: opts.align,
                     wrap: opts.wrap,
+                    fonts: opts.font,
+                    _hint: 'cli' as const,
                 };
             }
 
