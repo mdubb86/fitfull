@@ -3,7 +3,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SNAP_DIR = join(__dirname, '..', '__snapshots__');
+// __dirname is dist/test-utils at runtime; snapshots live in src/__snapshots__
+// so we go up two levels (out of dist/) then into src/__snapshots__
+const SNAP_DIR = join(__dirname, '..', '..', 'src', '__snapshots__');
 
 /**
  * Assert that a string matches a stored snapshot file.
