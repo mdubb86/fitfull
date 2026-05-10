@@ -94,9 +94,7 @@ describe('FontManager system resolution via injected provider', () => {
         assert.ok(fm.getFont('inter', 'regular'));
     });
 
-    test('resolves via index (no scan log) for cli hint when font is indexed', async () => {
-        // When the font resolves via the system index (exact match), no scan log is emitted
-        // regardless of hint. The scan log is only emitted for fuzzy-fallback hits.
+    test('emits scan log line with --font format for cli hint', async () => {
         const fm = await FontManager.createWithOptions({
             getSystemFonts: async () => [INTER_REGULAR],
         });
@@ -113,15 +111,14 @@ describe('FontManager system resolution via injected provider', () => {
             console.error = orig;
         }
 
-        // Font resolved via index path — no "Scanned" log expected
         const scanLog = errors.find(e => e.includes('Scanned'));
-        assert.ok(!scanLog, `expected no scan log for index-resolved font, got: ${errors.join('; ')}`);
+        assert.ok(scanLog, `expected scan log for system-resolved font, got: ${errors.join('; ')}`);
+        assert.ok(scanLog!.includes('--font'), `expected --font format in cli hint log, got: ${scanLog}`);
+        assert.ok(scanLog!.includes(INTER_REGULAR), `expected resolved path in log, got: ${scanLog}`);
         assert.ok(fm.getFont('inter', 'regular'));
     });
 
-    test('resolves via index (no scan log) for api hint when font is indexed', async () => {
-        // When the font resolves via the system index (exact match), no scan log is emitted
-        // because systemResolved stays empty. The scan log is only emitted for fuzzy-fallback hits.
+    test('emits scan log line with fonts: array format for api hint', async () => {
         const fm = await FontManager.createWithOptions({
             getSystemFonts: async () => [INTER_REGULAR],
         });
@@ -138,11 +135,31 @@ describe('FontManager system resolution via injected provider', () => {
             console.error = orig;
         }
 
-        // Font resolved via index path — no "Scanned" log expected
         const scanLog = errors.find(e => e.includes('Scanned'));
-        assert.ok(!scanLog, `expected no scan log for index-resolved font, got: ${errors.join('; ')}`);
-        // Font should still be accessible
+        assert.ok(scanLog, `expected scan log for system-resolved font, got: ${errors.join('; ')}`);
+        assert.ok(scanLog!.includes('fonts:'), `expected fonts: format in api hint log, got: ${scanLog}`);
+        assert.ok(scanLog!.includes(INTER_REGULAR), `expected resolved path in log, got: ${scanLog}`);
         assert.ok(fm.getFont('inter', 'regular'));
+    });
+
+    test('explicit paths do not trigger scan log', async () => {
+        const fm = await FontManager.createWithOptions({
+            getSystemFonts: async () => {
+                throw new Error('should not be called');
+            },
+        });
+        const errors: string[] = [];
+        const orig = console.error;
+        console.error = (...args: unknown[]) => { errors.push(args.map(String).join(' ')); };
+        try {
+            await fm.loadForTokens([
+                { text: 'Hi', size: 12, font: 'inter', weight: 'regular' as const },
+            ], { hint: 'cli', explicitPaths: [INTER_REGULAR] });
+        } finally {
+            console.error = orig;
+        }
+        const scanLog = errors.find(e => e.includes('Scanned'));
+        assert.ok(!scanLog, 'no scan log expected when explicit paths cover all fonts');
     });
 
     test('concurrent loadForTokens calls share the system index build', async () => {

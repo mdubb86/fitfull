@@ -405,12 +405,11 @@ export class FontManager {
                     if (!resolvedPath) {
                         // Fuzzy fallback: try filename pre-filter then full scan
                         resolvedPath = await findInSystemFonts(originalName.toLowerCase(), allSystemPaths);
-                        if (resolvedPath) {
-                            systemResolved.push({ family, path: resolvedPath });
-                        }
                     }
                     if (resolvedPath) {
                         resolved.push({ family, weight, path: resolvedPath });
+                        // Track any font resolved via the system scan (index or fuzzy fallback)
+                        systemResolved.push({ family, path: resolvedPath });
                     } else {
                         errors.push(`[${family}/${weight}] Font "${originalName}" not found. Make sure it's installed or pass the font file path directly.`);
                     }
