@@ -48,14 +48,31 @@ The standalone binary requires [Bun](https://bun.sh/) to build but runs without 
 
 ## Releases
 
+The release flow is:
+
+1. Bump `version` in `package.json` and commit it on `main`.
+2. Run `pnpm release:github` — tags `v<version>` and pushes the tag.
+3. The `Release` workflow (`.github/workflows/release.yml`) takes over: installs, builds, runs tests, then **pauses for manual approval** at the `release` GitHub Environment gate.
+4. After approval it publishes to npm (with [provenance](https://docs.npmjs.com/generating-provenance-statements)) via OIDC trusted publishing — no npm token is stored anywhere.
+5. It then compiles standalone Bun binaries for Linux / macOS (arm64 + x64) / Windows and attaches them to a generated GitHub release.
+
+`pnpm release:github` lives in `scripts/tag-release.js` and refuses to run with a dirty working tree or an existing tag.
+
 | Command | What it does |
 |---------|--------------|
-| `pnpm release:npm` | Builds and runs `pnpm publish --access public` |
-| `pnpm release:github` | Tags `v<version>` from `package.json` and pushes the tag to `origin` |
+| `pnpm release:github` | Tags `v<version>` and pushes — triggers the Release workflow |
+| `pnpm release:npm` | Manual escape hatch: builds and runs `pnpm publish --access public`. Requires a local npm token; only use if Actions is broken. |
 
-`release:github` lives in `scripts/tag-release.js` and refuses to run with a dirty working tree or an existing tag. Bump `package.json` version first.
+CI (`.github/workflows/ci.yml`) runs `pnpm build` and `pnpm test` on every push and PR — separate from the release pipeline.
 
-The repo's GitHub Actions workflow (`.github/workflows/release.yml`) handles building artifacts when the tag arrives; CI (`.github/workflows/ci.yml`) runs `pnpm build` and `pnpm test` on every push and PR.
+### One-time setup on npmjs.com
+
+Before the first release works, configure a trusted publisher for the `fitfull` package:
+
+- npmjs.com → account settings → Trusted Publishers → Add Pending Publisher
+- Package: `fitfull`, Publisher: GitHub Actions, Repo owner: `mdubb86`, Repo: `fitfull`, Workflow: `release.yml`, Environment: *(leave blank)*
+
+And on github.com → repo Settings → Environments → New environment `release` → add the owner as a required reviewer. This is what gates the publish step on a manual click.
 
 ## Project structure
 

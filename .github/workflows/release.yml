@@ -8,8 +8,10 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -21,17 +23,25 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
 
       - uses: oven-sh/setup-bun@v2
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm build
+
+      - run: pnpm test
+
+      - name: Publish to npm
+        run: pnpm publish --access public --no-git-checks --provenance
+
       - name: Build cross-platform binaries
         run: |
           bun build --compile --target=bun-linux-x64    src/cli.ts --outfile fitfull-linux-x64
-          bun build --compile --target=bun-darwin-arm64  src/cli.ts --outfile fitfull-darwin-arm64
-          bun build --compile --target=bun-darwin-x64    src/cli.ts --outfile fitfull-darwin-x64
-          bun build --compile --target=bun-windows-x64   src/cli.ts --outfile fitfull-windows-x64.exe
+          bun build --compile --target=bun-darwin-arm64 src/cli.ts --outfile fitfull-darwin-arm64
+          bun build --compile --target=bun-darwin-x64   src/cli.ts --outfile fitfull-darwin-x64
+          bun build --compile --target=bun-windows-x64  src/cli.ts --outfile fitfull-windows-x64.exe
 
       - uses: softprops/action-gh-release@v2
         with:
