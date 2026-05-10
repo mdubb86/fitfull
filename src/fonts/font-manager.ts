@@ -51,66 +51,6 @@ const subfamilyToWeight: Record<string, string> = {
     'bold oblique': 'bolditalic',
 };
 
-/** Cached system font indexes */
-let primaryIndex: Map<string, Map<string, string>> | null = null;
-let secondaryIndex: Map<string, Map<string, string>> | null = null;
-let indexPromise: Promise<void> | null = null;
-
-/**
- * Build indexes of system fonts by loading and parsing each one.
- * Primary index uses preferredFamily (Name ID 16) — matches CSS font-family names.
- * Secondary index uses fontFamily (Name ID 1) — the internal font name.
- * Safe to call concurrently — deduplicates via shared promise.
- */
-async function buildSystemFontIndexes(provider: () => Promise<string[]>): Promise<void> {
-    if (primaryIndex) return;
-    if (indexPromise) return indexPromise;
-
-    indexPromise = (async () => {
-        const primary = new Map<string, Map<string, string>>();
-        const secondary = new Map<string, Map<string, string>>();
-        const paths = await provider();
-
-        const filteredPaths = paths.filter((p: string) => !p.toLowerCase().endsWith('.ttc'));
-
-        await pMap(filteredPaths, async (fontPath: string) => {
-            const font = await loadFont(fontPath);
-            if (!font) return;
-
-            const preferredFamily = getNameString((font.names as any).preferredFamily).toLowerCase();
-            const family = getNameString(font.names.fontFamily).toLowerCase();
-            const subfamily = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
-
-            if (preferredFamily) {
-                if (!primary.has(preferredFamily)) {
-                    primary.set(preferredFamily, new Map());
-                }
-                primary.get(preferredFamily)!.set(subfamily, fontPath);
-            }
-
-            if (family) {
-                if (!secondary.has(family)) {
-                    secondary.set(family, new Map());
-                }
-                secondary.get(family)!.set(subfamily, fontPath);
-            }
-        }, { concurrency: 32 });
-
-        primaryIndex = primary;
-        secondaryIndex = secondary;
-    })();
-
-    return indexPromise;
-}
-
-/**
- * Ensure the system font index is built. Warn suppression is handled by the caller
- * so that opentype.js warnings are silenced for the entire system-scan phase.
- */
-async function ensureSystemIndex(provider: () => Promise<string[]>): Promise<void> {
-    return buildSystemFontIndexes(provider);
-}
-
 /**
  * Find a font family in system fonts using fuzzy pre-filter then full scan fallback.
  */
@@ -164,19 +104,17 @@ function isFilePath(str: string): boolean {
 }
 
 /**
- * Resolve a font reference (path or name) to an actual file path.
+ * Resolve a font reference (path or name) to an actual file path given pre-built indexes.
  * Returns null if the family is not found in the system index (instead of throwing),
  * so callers can fall through to findInSystemFonts as a fuzzy fallback.
  */
-async function resolveFontPath(ref: string, weight: string, provider: () => Promise<string[]> = getSystemFonts): Promise<string | null> {
-    // If it's already a file path, return it
-    if (isFilePath(ref)) {
-        return ref;
-    }
-
-    // Otherwise, look up in system fonts (preferredFamily first, then fontFamily)
-    await ensureSystemIndex(provider);
-    const familyMap = primaryIndex!.get(ref.toLowerCase()) ?? secondaryIndex!.get(ref.toLowerCase());
+function resolveFontPathFromIndex(
+    ref: string,
+    weight: string,
+    primaryIndex: Map<string, Map<string, string>>,
+    secondaryIndex: Map<string, Map<string, string>>,
+): string | null {
+    const familyMap = primaryIndex.get(ref.toLowerCase()) ?? secondaryIndex.get(ref.toLowerCase());
 
     if (!familyMap) {
         return null;
@@ -213,8 +151,82 @@ export class FontManager {
     private pendingLoads: Map<string, Promise<Font>> = new Map();
     private readonly systemFontsProvider: () => Promise<string[]>;
 
+    /** Per-instance system font index cache */
+    private primaryIndex: Map<string, Map<string, string>> | null = null;
+    private secondaryIndex: Map<string, Map<string, string>> | null = null;
+    private indexPromise: Promise<void> | null = null;
+
     private constructor(systemFontsProvider?: () => Promise<string[]>) {
         this.systemFontsProvider = systemFontsProvider ?? getSystemFonts;
+    }
+
+    /**
+     * Build indexes of system fonts by loading and parsing each one.
+     * Primary index uses preferredFamily (Name ID 16) — matches CSS font-family names.
+     * Secondary index uses fontFamily (Name ID 1) — the internal font name.
+     * Safe to call concurrently — deduplicates via shared promise.
+     */
+    private async buildSystemFontIndexes(): Promise<void> {
+        if (this.primaryIndex) return;
+        if (this.indexPromise) return this.indexPromise;
+
+        this.indexPromise = (async () => {
+            const primary = new Map<string, Map<string, string>>();
+            const secondary = new Map<string, Map<string, string>>();
+            const paths = await this.systemFontsProvider();
+
+            const filteredPaths = paths.filter((p: string) => !p.toLowerCase().endsWith('.ttc'));
+
+            await pMap(filteredPaths, async (fontPath: string) => {
+                const font = await loadFont(fontPath);
+                if (!font) return;
+
+                const preferredFamily = getNameString((font.names as any).preferredFamily).toLowerCase();
+                const family = getNameString(font.names.fontFamily).toLowerCase();
+                const subfamily = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
+
+                if (preferredFamily) {
+                    if (!primary.has(preferredFamily)) {
+                        primary.set(preferredFamily, new Map());
+                    }
+                    primary.get(preferredFamily)!.set(subfamily, fontPath);
+                }
+
+                if (family) {
+                    if (!secondary.has(family)) {
+                        secondary.set(family, new Map());
+                    }
+                    secondary.get(family)!.set(subfamily, fontPath);
+                }
+            }, { concurrency: 32 });
+
+            this.primaryIndex = primary;
+            this.secondaryIndex = secondary;
+        })();
+
+        return this.indexPromise;
+    }
+
+    /**
+     * Ensure the system font index is built.
+     * Warn suppression is handled by the caller so that opentype.js warnings
+     * are silenced for the entire system-scan phase.
+     */
+    private async ensureSystemIndex(): Promise<void> {
+        return this.buildSystemFontIndexes();
+    }
+
+    /**
+     * Resolve a font reference (path or name) to an actual file path.
+     * Returns null if the family is not found in the system index,
+     * so callers can fall through to findInSystemFonts as a fuzzy fallback.
+     */
+    private async resolveFontPath(ref: string, weight: string): Promise<string | null> {
+        if (isFilePath(ref)) {
+            return ref;
+        }
+        await this.ensureSystemIndex();
+        return resolveFontPathFromIndex(ref, weight, this.primaryIndex!, this.secondaryIndex!);
     }
 
     /**
@@ -257,7 +269,7 @@ export class FontManager {
             for (const [weight, ref] of Object.entries(weights)) {
                 if (!ref) continue;
                 try {
-                    const path = await resolveFontPath(ref, weight, this.systemFontsProvider);
+                    const path = await this.resolveFontPath(ref, weight);
                     if (path === null) {
                         errors.push(`[${family}/${weight}] System font "${ref}" not found. Make sure it's installed.`);
                     } else {
@@ -389,7 +401,7 @@ export class FontManager {
             for (const { family, weight, originalName } of toResolve) {
                 try {
                     // Try exact-match via system index first
-                    let resolvedPath = await resolveFontPath(originalName, weight, this.systemFontsProvider);
+                    let resolvedPath = await this.resolveFontPath(originalName, weight);
                     if (!resolvedPath) {
                         // Fuzzy fallback: try filename pre-filter then full scan
                         resolvedPath = await findInSystemFonts(originalName.toLowerCase(), allSystemPaths);
