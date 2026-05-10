@@ -295,6 +295,15 @@ Text is rendered using [opentype.js](https://opentype.js.org/) to extract glyph 
 
 For PNG output, [resvg](https://github.com/RazrFalcon/resvg) rasterizes the SVG.
 
+## Test snapshots
+
+SVG output for key scenarios is locked via snapshot tests in `src/__snapshots__/`. When intentional rendering changes occur:
+
+1. Run `pnpm test` to see which snapshots changed
+2. Review the diff carefully — they're plain `.svg` files
+3. If correct, run `pnpm test:update` to accept the changes
+4. Commit the updated `.svg` files
+
 ## License
 
 MIT
