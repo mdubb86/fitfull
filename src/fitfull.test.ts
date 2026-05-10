@@ -26,13 +26,13 @@ describe('Fitfull', () => {
 
     test('fit with html input returns svg and layout', async () => {
         const ff = Fitfull.create();
-        const html = `<body style="font-family: ${INTER_REGULAR}; font-size: 12px">Hello World</body>`;
+        const html = `<body style="font-family: inter; font-size: 12px">Hello World</body>`;
         const result = await ff.fit({
             html,
+            fonts: [INTER_REGULAR],
             width: 400,
             height: 100,
         });
-
         assert.ok(result.svg.startsWith('<svg'));
         assert.ok(result.lines.length >= 1);
     });
