@@ -282,6 +282,11 @@ Fills lines before wrapping, like normal paragraph text. Last line is typically 
 
 For an explanation of how the search picks an arrangement and scale, see [docs/architecture.md](./docs/architecture.md).
 
+## Known Limitations
+
+- **TrueType Collections (.ttc) are not supported.** Most macOS system fonts (Helvetica, HelveticaNeue, Times, Geneva, Avenir, Menlo, etc.) ship as `.ttc` files in `/System/Library/Fonts/` and are invisible to fitfull's `--font` lookup. As a workaround, use a plain `.ttf` from `/System/Library/Fonts/Supplemental/` (e.g. `Verdana.ttf`, `Arial.ttf`, `Times New Roman.ttf`), or specify any `.ttf`/`.otf` file by path. Native `.ttc` support is planned for v1.1.
+- **`.dfont`, `.woff`, `.woff2` are not supported** — only `.ttf` and `.otf` work.
+
 ## License
 
 MIT

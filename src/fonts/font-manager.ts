@@ -271,7 +271,9 @@ export class FontManager {
                 try {
                     const path = await this.resolveFontPath(ref, weight);
                     if (path === null) {
-                        errors.push(`[${family}/${weight}] System font "${ref}" not found. Make sure it's installed.`);
+                        errors.push(`[${family}/${weight}] System font "${ref}" not found. Make sure it's installed. ` +
+                            `(macOS: many system fonts are .ttc files which fitfull doesn't yet support — ` +
+                            `try /System/Library/Fonts/Supplemental/ for .ttf alternatives.)`);
                     } else {
                         familyPaths.set(weight, path);
                     }
@@ -411,7 +413,9 @@ export class FontManager {
                         // Track any font resolved via the system scan (index or fuzzy fallback)
                         systemResolved.push({ family, path: resolvedPath });
                     } else {
-                        errors.push(`[${family}/${weight}] Font "${originalName}" not found. Make sure it's installed or pass the font file path directly.`);
+                        errors.push(`[${family}/${weight}] Font "${originalName}" not found. Make sure it's installed or pass the font file path directly. ` +
+                            `(macOS: many system fonts are .ttc files which fitfull doesn't yet support — ` +
+                            `try /System/Library/Fonts/Supplemental/ for .ttf alternatives.)`);
                     }
                 } catch (e: any) {
                     errors.push(`[${family}/${weight}] ${e.message}`);
