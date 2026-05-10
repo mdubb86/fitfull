@@ -103,3 +103,54 @@ describe('CLI happy paths', () => {
         unlinkSync(out);
     });
 });
+
+describe('CLI stdin and output dispatch', () => {
+    test('html mode reads from stdin with -', async () => {
+        const out = tmp('stdin.svg');
+        const html = '<body style="font-family: inter; font-size: 12px">From stdin</body>';
+
+        await new Promise<void>((resolve, reject) => {
+            const proc = spawn('node', [CLI,
+                '--html', '-',
+                '--font', INTER_REGULAR,
+                '--size', '400x100',
+                '-o', out,
+            ], { cwd: ROOT, stdio: ['pipe', 'pipe', 'pipe'] });
+
+            let stderr = '';
+            proc.stderr.on('data', (d) => { stderr += d.toString(); });
+            proc.on('close', (code) => {
+                if (code === 0) resolve();
+                else reject(new Error(`exit ${code}\n${stderr}`));
+            });
+            proc.stdin.write(html);
+            proc.stdin.end();
+        });
+
+        assert.ok(existsSync(out));
+        assert.ok(readFileSync(out, 'utf-8').startsWith('<svg'));
+        unlinkSync(out);
+    });
+
+    test('PNG output is generated when -o ends with .png', () => {
+        const out = tmp('out.png');
+        const result = runCli([
+            '--text', 'Hello',
+            '--font', INTER_REGULAR,
+            '--size', '200x50',
+            '-o', out,
+        ]);
+
+        assert.strictEqual(result.status, 0, `expected exit 0, got ${result.status}\n${result.stderr}`);
+        assert.ok(existsSync(out));
+
+        const buf = readFileSync(out);
+        // PNG magic bytes: 89 50 4E 47
+        assert.strictEqual(buf[0], 0x89);
+        assert.strictEqual(buf[1], 0x50);
+        assert.strictEqual(buf[2], 0x4E);
+        assert.strictEqual(buf[3], 0x47);
+
+        unlinkSync(out);
+    });
+});
