@@ -15,6 +15,7 @@
   "exclude": [
     "src/**/*.test.ts",
     "src/test-utils/**",
-    "src/__snapshots__/**"
+    "src/__snapshots__/**",
+    "src/cli-bun.ts"
   ]
 }
