@@ -1,5 +1,7 @@
 # fitfull
 
+![CI](https://github.com/mdubb86/fitfull/actions/workflows/ci.yml/badge.svg)
+
 Fit text into a given space. Outputs SVG or PNG with text optimally scaled and wrapped to fill the constraint box.
 
 ## Features
@@ -11,17 +13,25 @@ Fit text into a given space. Outputs SVG or PNG with text optimally scaled and w
 - **Vector output**: SVG with embedded font paths (no font dependencies)
 - **Raster output**: PNG using resvg for high-quality rendering
 
+## Documentation
+
+- [docs/architecture.md](./docs/architecture.md) — search algorithm, measurement, rendering pipeline
+- [docs/fonts.md](./docs/fonts.md) — how fonts are resolved and loaded
+- [docs/development.md](./docs/development.md) — setup, testing, releases, project layout
+
 ## Installation
 
+Requires Node.js 24 (see `.nvmrc`) and pnpm 11.
+
 ```bash
-npm install
-npm run build
+pnpm install
+pnpm build
 ```
 
-Or compile to standalone binary (requires Bun):
+Or compile to a standalone binary (requires [Bun](https://bun.sh/)):
 
 ```bash
-bun build --compile src/cli.ts --outfile fitfull
+pnpm build:bin
 ```
 
 ## Library Usage
@@ -98,12 +108,17 @@ All input modes accept these fitting options:
   minLines?: 1,
   maxLines?: 4,
   lineSpacing?: 1.0,
-  align?: 'left',           // 'left' | 'center' | 'right'
+  align?: 'left',          // 'left' | 'center' | 'right'
   wrap?: 'balanced',       // 'balanced' | 'greedy'
+  fonts?: string[],        // explicit font file paths (skips system scan when covered)
+  maxTokens?: 1000,        // input token cap (default 1000; pass Infinity to disable)
+  timeout?: 10000,         // fit deadline in ms (default 10000; pass Infinity to disable)
   color?: '#000000',
   background?: 'white',
 }
 ```
+
+See [docs/fonts.md](./docs/fonts.md) for how `fonts` and font resolution work.
 
 ## CLI Usage
 
@@ -169,7 +184,7 @@ HTML must have explicit `font-family` and `font-size` styling. Set defaults on t
 </body>
 ```
 
-Or use `<style>` blocks (inlined via [juice](https://github.com/Automattic/juice)):
+CSS in `<style>` blocks is inlined automatically:
 
 ```html
 <style>
@@ -203,6 +218,8 @@ Font sizes are relative and scale proportionally, just like token sizes.
 | `--line-spacing <n>` | Line spacing multiplier (default: 1) |
 | `-a, --align <align>` | Horizontal alignment: left, center, right |
 | `-w, --wrap <mode>` | Line wrapping: balanced or greedy |
+| `--max-tokens <n>` | Maximum input tokens (default: 1000) |
+| `--timeout <ms>` | Fit deadline in milliseconds (default: 10000) |
 | `-c, --color <color>` | Text color (default: #000000) |
 | `-b, --background <color>` | Background color (default: transparent) |
 
@@ -263,46 +280,7 @@ Fills lines before wrapping, like normal paragraph text. Last line is typically 
 "guns."
 ```
 
-## How It Works
-
-### 1. Text Arrangement
-
-For **balanced** mode, the fitter generates all possible ways to break text into lines (respecting `--min-lines` and `--max-lines`), then scores each arrangement by how even the line widths are.
-
-For **greedy** mode, lines are filled to the constraint width before wrapping, producing a deterministic arrangement for any given scale.
-
-### 2. Scale Calculation
-
-For each arrangement, the optimal scale is calculated analytically:
-- Measure token metrics once at scale=1 (no path generation)
-- Compute line widths and total height from metrics
-- Scale = min(constraintWidth / maxLineWidth, constraintHeight / totalHeight)
-- Constrain by `--max-text-height` if specified
-
-For **greedy** mode with auto-scale, binary search finds the largest scale where the greedy arrangement fits.
-
-Use `--text-height` to fix the scale exactly (disables optimization).
-
-### 3. Scoring
-
-Arrangements are scored by:
-1. **Scale** (primary): Larger text is better
-2. **Line balance** (secondary): For balanced mode, even line widths preferred
-
-### 4. Rendering
-
-Text is rendered using [opentype.js](https://opentype.js.org/) to extract glyph paths. These paths are embedded directly in SVG - no font files needed to display the output.
-
-For PNG output, [resvg](https://github.com/RazrFalcon/resvg) rasterizes the SVG.
-
-## Test snapshots
-
-SVG output for key scenarios is locked via snapshot tests in `src/__snapshots__/`. When intentional rendering changes occur:
-
-1. Run `pnpm test` to see which snapshots changed
-2. Review the diff carefully — they're plain `.svg` files
-3. If correct, run `pnpm test:update` to accept the changes
-4. Commit the updated `.svg` files
+For an explanation of how the search picks an arrangement and scale, see [docs/architecture.md](./docs/architecture.md).
 
 ## License
 

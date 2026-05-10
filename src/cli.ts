@@ -118,6 +118,7 @@ program
     .addOption(new Option('-a, --align <alignment>', 'Horizontal alignment (left, center, right)').choices(['left', 'center', 'right']).default('left'))
     .addOption(new Option('-w, --wrap <mode>', 'Line wrapping: balanced (even widths) or greedy (fill lines first)').choices(['balanced', 'greedy']).default('balanced'))
     .option('--max-tokens <n>', 'Maximum number of tokens (default: 1000)', (v) => parseInt(v, 10))
+    .option('--timeout <ms>', 'Maximum fit duration in milliseconds (default: 10000)', (v) => parseInt(v, 10))
     .option('-c, --color <color>', 'Text color', '#000000')
     .option('-b, --background <color>', 'Background color (transparent if not set)')
     .option('--annotate', 'Show layout annotations (line bounds, token bounds, baselines)')
@@ -181,6 +182,7 @@ program
                     fonts: opts.font,
                     _hint: 'cli' as const,
                     maxTokens: opts.maxTokens,
+                    timeout: opts.timeout,
                 };
             } else if (opts.html) {
                 // HTML mode - HTML must have its own styling
@@ -199,6 +201,7 @@ program
                     fonts: opts.font,
                     _hint: 'cli' as const,
                     maxTokens: opts.maxTokens,
+                    timeout: opts.timeout,
                 };
             } else {
                 // Text mode
@@ -224,6 +227,7 @@ program
                     fonts: opts.font,
                     _hint: 'cli' as const,
                     maxTokens: opts.maxTokens,
+                    timeout: opts.timeout,
                 };
             }
 
