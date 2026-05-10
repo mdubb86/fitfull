@@ -21,18 +21,18 @@ Fit text into a given space. Outputs SVG or PNG with text optimally scaled and w
 
 ## Installation
 
-Requires Node.js 24 (see `.nvmrc`) and pnpm 11.
-
 ```bash
-pnpm install
-pnpm build
+# As a library
+npm install fitfull
+# or: pnpm add fitfull
+
+# As a CLI tool
+npm install -g fitfull
 ```
 
-Or compile to a standalone binary (requires [Bun](https://bun.sh/)):
+Requires Node.js 20 or later.
 
-```bash
-pnpm build:bin
-```
+A standalone binary (no Node.js required) is available from the [GitHub releases](https://github.com/mdubb86/fitfull/releases). For development setup and building from source, see [docs/development.md](./docs/development.md).
 
 ## Library Usage
 
