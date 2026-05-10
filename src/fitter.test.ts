@@ -308,3 +308,111 @@ describe('Layout positioning', async () => {
         }
     });
 });
+
+describe('Fitter edge cases', async () => {
+    fonts = await FontManager.create({
+        inter: {
+            regular: INTER_REGULAR,
+            bold: INTER_BOLD,
+        }
+    });
+
+    test('textHeight pins largest token to that height', () => {
+        const tokens: Token[] = [
+            { text: 'Big', size: 100, font: 'inter', weight: 'regular' },
+            { text: ' ', size: 100, font: 'inter', weight: 'regular' },
+            { text: 'tiny', size: 50, font: 'inter', weight: 'regular' },
+        ];
+        const fitter = new Fitter(tokens, fonts, 2000, 2000, {
+            align: 'left',
+            textHeight: 80,
+        });
+        const fit = fitter.computeBestFit();
+        assert.ok(approxEqual(fit.maxTextHeight, 80, 0.5),
+            `maxTextHeight should be ~80, got ${fit.maxTextHeight}`);
+    });
+
+    test('maxTextHeight clamps tallest line height', () => {
+        const tokens = textToTokens('Hello World', 36, 'inter');
+        const fitter = new Fitter(tokens, fonts, 1000, 1000, {
+            align: 'left',
+            maxTextHeight: 50,
+        });
+        const fit = fitter.computeBestFit();
+        assert.ok(fit.maxTextHeight <= 50.5,
+            `maxTextHeight should be <= 50, got ${fit.maxTextHeight}`);
+    });
+
+    test('throws Unable to fit when constraints are impossible', () => {
+        // textHeight forces a fixed scale; if that scale makes text larger than the box, it cannot fit
+        const tokens = textToTokens('Hello World', 36, 'inter');
+        const fitter = new Fitter(tokens, fonts, 10, 10, {
+            align: 'left',
+            textHeight: 500,
+        });
+        assert.throws(() => fitter.computeBestFit(), /Unable to fit/);
+    });
+
+    test('greedy probe handles non-monotone wrapping cases', () => {
+        const tokens = textToTokens('The quick brown fox jumps over the lazy dog', 24, 'inter');
+        const fitter = new Fitter(tokens, fonts, 300, 200, {
+            align: 'left',
+            wrap: 'greedy',
+        });
+        const fit = fitter.computeBestFit();
+        assert.ok(fit.layout.lines.length >= 2);
+        assert.ok(fit.layout.width <= 300);
+    });
+
+    test('greedy fixed-scale mode (textHeight) succeeds', () => {
+        const tokens = textToTokens('Hello World', 24, 'inter');
+        const fitter = new Fitter(tokens, fonts, 1000, 1000, {
+            align: 'left',
+            wrap: 'greedy',
+            textHeight: 30,
+        });
+        const fit = fitter.computeBestFit();
+        assert.ok(approxEqual(fit.maxTextHeight, 30, 0.5));
+    });
+});
+
+describe('Fitter known-value math', async () => {
+    fonts = await FontManager.create({
+        inter: {
+            regular: INTER_REGULAR,
+            bold: INTER_BOLD,
+        }
+    });
+
+    // Known-value assertions: record exact numeric output to catch math regressions.
+    // First pass: tests log the actual values, replace `expected = 0` with the logged value.
+
+    test('Hello at 36pt Inter Regular has known width', () => {
+        const tokens = textToTokens('Hello', 36, 'inter');
+        // Use a tall narrow box so height is not the binding constraint,
+        // giving a non-trivial layout.width determined by font metrics.
+        const fitter = new Fitter(tokens, fonts, 1000, 200, {
+            align: 'left',
+            maxLines: 1,
+        });
+        const { layout } = fitter.computeBestFit();
+        const expected = 614.53;
+        assert.ok(approxEqual(layout.width, expected, 0.5),
+            `width should be ~${expected}, got ${layout.width.toFixed(2)}`);
+    });
+
+    test('two-line baseline distance at 24pt is known', () => {
+        const tokens = textToTokens('Line one Line two more words here please', 24, 'inter');
+        const fitter = new Fitter(tokens, fonts, 100, 400, {
+            align: 'left',
+            minLines: 2,
+            maxLines: 2,
+            lineSpacing: 1.0,
+        });
+        const { layout } = fitter.computeBestFit();
+        const gap = layout.lines[1].baseline - layout.lines[0].baseline;
+        const expected = 11.10;
+        assert.ok(approxEqual(gap, expected, 0.5),
+            `baseline gap should be ~${expected}, got ${gap.toFixed(2)}`);
+    });
+});
