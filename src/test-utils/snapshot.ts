@@ -3,8 +3,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// __dirname is dist/test-utils at runtime; snapshots live in src/__snapshots__
-// so we go up two levels (out of dist/) then into src/__snapshots__
+// __dirname is <build-output>/test-utils at runtime; snapshots live in src/__snapshots__
+// so we go up two levels (out of the build output dir) then into src/__snapshots__
 const SNAP_DIR = join(__dirname, '..', '..', 'src', '__snapshots__');
 
 /**

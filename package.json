@@ -44,7 +44,7 @@
   "scripts": {
     "build": "tsc",
     "build:bin": "tsc && bun build --compile src/cli.ts --outfile fitfull",
-    "test": "node --test \"dist/**/*.test.js\"",
+    "test": "tsc -p tsconfig.test.json && node --test \"dist-test/**/*.test.js\"",
     "test:update": "UPDATE_SNAPSHOTS=1 pnpm test",
     "release:npm": "pnpm build && pnpm publish --access public",
     "release:github": "node scripts/tag-release.js"
