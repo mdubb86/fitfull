@@ -1,6 +1,6 @@
 {
   "name": "fitfull",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Text fitting with opentype.js - supports styled tokens with varying sizes and weights",
   "type": "module",
   "packageManager": "pnpm@11.0.9",
