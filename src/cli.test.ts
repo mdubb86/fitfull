@@ -154,3 +154,72 @@ describe('CLI stdin and output dispatch', () => {
         unlinkSync(out);
     });
 });
+
+describe('CLI error paths', () => {
+    test('exits with error when no input mode provided', () => {
+        const result = runCli([
+            '--size', '200x50',
+            '--font', INTER_REGULAR,
+            '-o', tmp('nope.svg'),
+        ]);
+
+        assert.notStrictEqual(result.status, 0);
+        assert.match(result.stderr, /Provide --text, --tokens, or --html/);
+    });
+
+    test('exits with error on conflicting input modes', () => {
+        const htmlPath = tmp('conflict.html');
+        writeFileSync(htmlPath, '<body></body>');
+
+        const result = runCli([
+            '--text', 'Hi',
+            '--html', htmlPath,
+            '--font', INTER_REGULAR,
+            '--size', '400x100',
+            '-o', tmp('conflict.svg'),
+        ]);
+
+        assert.notStrictEqual(result.status, 0);
+        assert.match(result.stderr, /Provide only one of/);
+        unlinkSync(htmlPath);
+    });
+
+    test('exits with error on conflicting size options', () => {
+        const result = runCli([
+            '--text', 'Hi',
+            '--font', INTER_REGULAR,
+            '--size', '400x100',
+            '--text-height', '20',
+            '--max-text-height', '30',
+            '-o', tmp('conflict.svg'),
+        ]);
+
+        assert.notStrictEqual(result.status, 0);
+        assert.match(result.stderr, /Cannot use both/);
+    });
+
+    test('exits with error on zero-dimension size', () => {
+        const result = runCli([
+            '--text', 'Hi',
+            '--font', INTER_REGULAR,
+            '--size', '0x100',
+            '-o', tmp('zero.svg'),
+        ]);
+
+        assert.notStrictEqual(result.status, 0);
+        assert.match(result.stderr, /must be positive integers/);
+    });
+
+    test('exits with error on invalid color (XSS attempt)', () => {
+        const result = runCli([
+            '--text', 'Hello',
+            '--font', INTER_REGULAR,
+            '--size', '200x50',
+            '--color', 'red"/><script>',
+            '-o', tmp('xss.svg'),
+        ]);
+
+        assert.notStrictEqual(result.status, 0);
+        assert.match(result.stderr, /Invalid color/);
+    });
+});
