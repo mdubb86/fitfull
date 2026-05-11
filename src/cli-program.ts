@@ -58,8 +58,8 @@ function parseFontArg(fontArg: string): { font: string; weight: FontWeight } {
             ? (result as fontkit.FontCollection).fonts[0]
             : result as fontkit.Font;
 
-        const family = face.familyName || fontArg;
-        const subfamily = (face.subfamilyName || 'Regular').toLowerCase();
+        const family = String(face.familyName || fontArg);
+        const subfamily = String(face.subfamilyName || 'Regular').toLowerCase();
 
         let weight: FontWeight = 'regular';
         const isBold = subfamily.includes('bold');

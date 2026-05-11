@@ -92,7 +92,7 @@ async function findInSystemFonts(
     for (const candidate of candidates) {
         const font = loadFont(candidate);
         if (!font) continue;
-        const ff = (font.familyName || '').toLowerCase();
+        const ff = String(font.familyName || '').toLowerCase();
         if (ff === family) return candidate;
     }
 
@@ -102,7 +102,7 @@ async function findInSystemFonts(
     for (const fontPath of remaining) {
         const font = loadFont(fontPath);
         if (!font) continue;
-        const ff = (font.familyName || '').toLowerCase();
+        const ff = String(font.familyName || '').toLowerCase();
         if (ff === family) return fontPath;
     }
 
@@ -187,8 +187,8 @@ export class FontManager {
             const paths = await this.systemFontsProvider();
 
             const addFace = (font: fontkit.Font, indexedPath: string) => {
-                const family = (font.familyName || '').toLowerCase();
-                const subfamily = (font.subfamilyName || 'regular').toLowerCase();
+                const family = String(font.familyName || '').toLowerCase();
+                const subfamily = String(font.subfamilyName || 'regular').toLowerCase();
                 if (!family) return;
                 if (!index.has(family)) {
                     index.set(family, new Map());
@@ -336,8 +336,8 @@ export class FontManager {
                 failedPaths.push(fontPath);
                 continue;
             }
-            const family = (font.familyName || '').toLowerCase();
-            const subfamilyRaw = (font.subfamilyName || 'regular').toLowerCase();
+            const family = normalizeFamily(String(font.familyName || ''));
+            const subfamilyRaw = String(font.subfamilyName || 'regular').toLowerCase();
             const weight = subfamilyToWeight[subfamilyRaw] ?? 'regular';
             if (!family) continue;
             if (!this.fonts[family]) this.fonts[family] = {};
