@@ -125,6 +125,7 @@ export default class Fitter {
         // 3. Build search context and dispatch to strategy
         const ctx: SearchContext = {
             tokens: this.tokens,
+            fonts: this.fonts,
             tokenMetricsMap,
             width: this.width,
             height: this.height,

@@ -1,5 +1,28 @@
 import type { Token, TokenMetrics } from '../types.js';
-import { getLineMetrics } from '../measure/index.js';
+import type { FontManager } from '../fonts/index.js';
+import { getLineMetrics, measureSingleTokenMetrics } from '../measure/index.js';
+
+/**
+ * Look up token metrics from the map; if not found (because trimLineWhitespace
+ * created a new Token object via spread), compute fresh metrics on demand and
+ * cache them so subsequent lookups for the same object are O(1).
+ *
+ * This is the canonical fix for the object-identity mismatch: trimmed tokens
+ * are not in the map because Map uses reference equality, but their metrics
+ * can be recomputed from the token's own fields (font, weight, size, text).
+ */
+export function getOrComputeTokenMetrics(
+    token: Token,
+    tokenMetricsMap: Map<Token, TokenMetrics>,
+    fonts: FontManager
+): TokenMetrics {
+    let metrics = tokenMetricsMap.get(token);
+    if (metrics === undefined) {
+        metrics = measureSingleTokenMetrics(token, fonts);
+        tokenMetricsMap.set(token, metrics);
+    }
+    return metrics;
+}
 
 /** Trim leading whitespace from first token, trailing from last */
 
@@ -36,6 +59,19 @@ export function trimLineWhitespace(tokens: Token[]): Token[] {
     }
 
     return result;
+}
+
+/**
+ * Compute the population standard deviation of line widths, normalized by box width.
+ * Used as a soft variance penalty to avoid orphan/widow lines when scale advantage is marginal.
+ * Returns 0 for single-line arrangements.
+ */
+export function lineWidthVariance(lineWidths: number[], boxWidth: number): number {
+    if (lineWidths.length <= 1) return 0;
+    const mean = lineWidths.reduce((a, b) => a + b, 0) / lineWidths.length;
+    const variance = lineWidths.reduce((sum, w) => sum + (w - mean) ** 2, 0) / lineWidths.length;
+    const stddev = Math.sqrt(variance);
+    return boxWidth > 0 ? stddev / boxWidth : 0;
 }
 
 /** Build greedy arrangement: fill lines to target width before wrapping */

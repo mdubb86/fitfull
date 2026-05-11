@@ -2,13 +2,16 @@ import { performance } from 'node:perf_hooks';
 import type { SearchContext, SearchResult } from './types.js';
 import { FIT_TOLERANCE, SEARCH_PRECISION } from './types.js';
 import { getArrangementMetrics } from '../measure/index.js';
-import { buildGreedyArrangement } from './wrapping.js';
+import { buildGreedyArrangement, getOrComputeTokenMetrics, lineWidthVariance } from './wrapping.js';
 
-type GreedyScore = { scale: number; lastLineRatio: number };
+/** Variance penalty weight: score = scale - K * normalizedVariance */
+const VARIANCE_PENALTY_K = 0.05;
+
+type GreedyScore = { scale: number; combinedScore: number; lastLineRatio: number };
 
 function isBetterThan(a: GreedyScore, b: GreedyScore): boolean {
-    if (a.scale > b.scale) return true;
-    if (a.scale < b.scale) return false;
+    if (a.combinedScore > b.combinedScore) return true;
+    if (a.combinedScore < b.combinedScore) return false;
     return a.lastLineRatio < b.lastLineRatio;
 }
 
@@ -19,7 +22,7 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
 
     let bestScale = 0;
     let bestArrangement: import('../types.js').Token[][] = [];
-    let bestScore: GreedyScore = { scale: 0, lastLineRatio: Infinity };
+    let bestScore: GreedyScore = { scale: 0, combinedScore: -Infinity, lastLineRatio: Infinity };
     let arrangements = 0;
 
     const tryScale = (scale: number): 'fit' | 'too_big' | 'too_small' => {
@@ -45,7 +48,7 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
 
         // Check if it fits
         const lineTokenMetrics = arrangement.map(line =>
-            line.map(token => ctx.tokenMetricsMap.get(token)!)
+            line.map(token => getOrComputeTokenMetrics(token, ctx.tokenMetricsMap, ctx.fonts))
         );
 
         const metrics = getArrangementMetrics(
@@ -71,7 +74,13 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
             const lineWidths = metrics.lineMetrics.map(lm => lm.width * scale);
             const avg = lineWidths.reduce((a, b) => a + b, 0) / lineWidths.length;
             const lastRatio = avg > 0 ? (lineWidths[lineWidths.length - 1] ?? 0) / avg : 0;
-            const candidate: GreedyScore = { scale: scale / ctx.maxScale, lastLineRatio: lastRatio };
+            const normalizedScale = scale / ctx.maxScale;
+            const normalizedVariance = lineWidthVariance(lineWidths, ctx.width);
+            const candidate: GreedyScore = {
+                scale: normalizedScale,
+                combinedScore: normalizedScale - VARIANCE_PENALTY_K * normalizedVariance,
+                lastLineRatio: lastRatio,
+            };
             if (isBetterThan(candidate, bestScore)) {
                 bestScale = scale;
                 bestArrangement = arrangement;
@@ -106,21 +115,33 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
         }
 
         // Greedy wrapping is non-monotonic: higher scale can wrap differently and fit.
-        // Probe above the binary search result to catch these cases.
+        // Probe above and below the binary search result to catch these cases.
+        // The variance penalty may also prefer a lower scale with better balance.
         const binarySearchBest = bestScale;
         const probeCount = 10;
-        const probeStep = (ctx.maxScale - binarySearchBest) / probeCount;
+        const probeStepUp = (ctx.maxScale - binarySearchBest) / probeCount;
         // Linear probe above binary search result: greedy wrapping is non-monotone near
         // wrap-count boundaries, so binary search alone can miss the true optimum.
-        if (probeStep === 0) return bestArrangement.length === 0 ? undefined : {
+        if (probeStepUp === 0) return bestArrangement.length === 0 ? undefined : {
             scale: bestScale,
             arrangement: bestArrangement,
             arrangements,
         };
         for (let i = 1; i <= probeCount; i++) {
-            const probeScale = binarySearchBest + i * probeStep;
+            const probeScale = binarySearchBest + i * probeStepUp;
             if (probeScale <= ctx.maxScale) {
                 tryScale(probeScale);
+            }
+        }
+        // Also probe below the binary search best: the variance penalty may prefer a
+        // lower-scale arrangement with more balanced line widths.
+        const probeStepDown = (binarySearchBest - ctx.minScale) / probeCount;
+        if (probeStepDown > 0) {
+            for (let i = 1; i <= probeCount; i++) {
+                const probeScale = binarySearchBest - i * probeStepDown;
+                if (probeScale >= ctx.minScale) {
+                    tryScale(probeScale);
+                }
             }
         }
     }

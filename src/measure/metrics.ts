@@ -1,8 +1,7 @@
-import type { Font } from 'opentype.js';
+import type { Font } from 'fontkit';
 import type { Token, TokenMetrics, LineMetrics, ArrangementMetrics } from '../types.js';
 import type { FontManager } from '../fonts/index.js';
 import { getFontMetrics } from '../fonts/index.js';
-import { kerningBetween } from './kerning.js';
 
 /**
  * Calculate total height for lines.
@@ -39,22 +38,15 @@ export function calculateTotalHeight(
 }
 
 /**
- * Calculate advance width for a string (includes kerning)
+ * Calculate advance width for a string (includes GPOS kerning via font.layout)
  */
 export function getAdvanceWidth(font: Font, text: string, fontSize: number): number {
     const scale = fontSize / font.unitsPerEm;
+    const run = font.layout(text);
     let total = 0;
-
-    for (let i = 0; i < text.length; i++) {
-        const glyph = font.charToGlyph(text[i]);
-        total += (glyph.advanceWidth ?? 0) * scale;
-
-        // Add kerning between this char and next
-        if (i < text.length - 1) {
-            total += kerningBetween(font, text[i], text[i + 1], scale);
-        }
+    for (const pos of run.positions) {
+        total += pos.xAdvance * scale;
     }
-
     return total;
 }
 
@@ -72,29 +64,23 @@ export function getTightBounds(font: Font, text: string, fontSize: number): {
     if (text.length === 0) return { leftBearing: 0, tightRight: 0, tightTop: 0, tightBottom: 0 };
 
     const scale = fontSize / font.unitsPerEm;
+    const run = font.layout(text);
     let x = 0;
     let minX = Infinity;
     let maxX = -Infinity;
-    let minY = Infinity;  // topmost point (most negative in glyph coords, but we flip for screen)
-    let maxY = -Infinity; // bottommost point
+    let minY = Infinity;
+    let maxY = -Infinity;
 
-    for (let i = 0; i < text.length; i++) {
-        const glyph = font.charToGlyph(text[i]);
+    for (let i = 0; i < run.glyphs.length; i++) {
+        const glyph = run.glyphs[i];
+        const pos = run.positions[i];
 
         // Get glyph bounding box (in font units)
-        // For CFF/OTF fonts, use getBoundingBox() as direct properties may be undefined
-        let xMin = glyph.xMin;
-        let xMax = glyph.xMax;
-        let yMin = glyph.yMin;
-        let yMax = glyph.yMax;
-
-        if (xMin === undefined && glyph.getBoundingBox) {
-            const bbox = glyph.getBoundingBox();
-            xMin = bbox.x1;
-            xMax = bbox.x2;
-            yMin = bbox.y1;
-            yMax = bbox.y2;
-        }
+        const bbox = glyph.bbox;
+        const xMin = bbox?.minX;
+        const xMax = bbox?.maxX;
+        const yMin = bbox?.minY;
+        const yMax = bbox?.maxY;
 
         // Some glyphs (like space) have no visual bounds
         if (xMin !== undefined && xMax !== undefined && xMin !== xMax) {
@@ -105,18 +91,12 @@ export function getTightBounds(font: Font, text: string, fontSize: number): {
         // Y bounds (yMin/yMax in font coords: yMin is bottom, yMax is top)
         // We flip for screen coords: top is negative (above baseline), bottom is positive
         if (yMin !== undefined && yMax !== undefined && yMin !== yMax) {
-            // In screen coords: top = -yMax, bottom = -yMin
             minY = Math.min(minY, -yMax * scale);  // topmost (most negative)
             maxY = Math.max(maxY, -yMin * scale);  // bottommost (most positive)
         }
 
-        // Advance for next character
-        x += (glyph.advanceWidth ?? 0) * scale;
-
-        // Add kerning between this char and next
-        if (i < text.length - 1) {
-            x += kerningBetween(font, text[i], text[i + 1], scale);
-        }
+        // Advance for next glyph (GPOS kerning included in xAdvance)
+        x += pos.xAdvance * scale;
     }
 
     // If no visible glyphs (all spaces), return zeros
@@ -127,6 +107,27 @@ export function getTightBounds(font: Font, text: string, fontSize: number): {
         tightRight: maxX,
         tightTop: minY,
         tightBottom: maxY,
+    };
+}
+
+/**
+ * Measure a single token's metrics (no inter-token kerning).
+ * Used to compute metrics on-demand for tokens created after the initial bulk measurement
+ * (e.g. trimmed tokens produced by trimLineWhitespace).
+ */
+export function measureSingleTokenMetrics(token: Token, fonts: FontManager): TokenMetrics {
+    const font = fonts.getFont(token.font, token.weight);
+    const metrics = getFontMetrics(font, token.size);
+    const tightBounds = getTightBounds(font, token.text, token.size);
+    return {
+        advanceWidth: getAdvanceWidth(font, token.text, token.size),
+        kerningDelta: 0,
+        leftBearing: tightBounds.leftBearing,
+        tightRight: tightBounds.tightRight,
+        tightTop: tightBounds.tightTop,
+        tightBottom: tightBounds.tightBottom,
+        ascent: metrics.ascent,
+        descent: metrics.descent,
     };
 }
 
@@ -154,18 +155,8 @@ export function measureAllTokenMetrics(tokens: Token[], fonts: FontManager): Tok
         });
     }
 
-    // Precompute kerning between consecutive token pairs
-    for (let i = 0; i < tokens.length - 1; i++) {
-        const a = tokens[i];
-        const b = tokens[i + 1];
-        if (a.font !== b.font || a.weight !== b.weight) continue;
-        const lookup = fonts.getKerningLookup(a.font, a.weight);
-        const kernValue = lookup.get(`${a.text.slice(-1)},${b.text[0]}`) || 0;
-        if (kernValue !== 0) {
-            const unitsPerEm = fonts.getUnitsPerEm(a.font, a.weight);
-            result[i].kerningDelta = kernValue * (a.size / unitsPerEm);
-        }
-    }
+    // Inter-token kerning is not applied here; fontkit auto-applies GPOS within each token via layout().
+    // Cross-token kerning at boundaries is intentionally omitted (negligible for multi-token layouts).
 
     return result;
 }

@@ -1,4 +1,5 @@
-import type { Font, Path } from 'opentype.js';
+import type { Font } from 'fontkit';
+import type { ComposedPath as Path } from './measure/path-adapter.js';
 
 /** Font weight type alias */
 export type FontWeight = 'regular' | 'bold' | 'italic' | 'bolditalic';

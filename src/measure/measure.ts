@@ -1,8 +1,8 @@
-import type { Font } from 'opentype.js';
+import type { Font } from 'fontkit';
 import type { Token, MeasuredToken, MeasuredLine } from '../types.js';
 import { FontManager, getFontMetrics } from '../fonts/index.js';
 import { getAdvanceWidth } from './metrics.js';
-import { kerningBetween } from './kerning.js';
+import { composeGlyphRunPath } from './path-adapter.js';
 
 /**
  * Measure a single token
@@ -14,7 +14,7 @@ export function measureToken(
     x: number,
     baseline: number
 ): MeasuredToken {
-    const path = font.getPath(token.text, x, baseline, token.size);
+    const path = composeGlyphRunPath(font, token.text, x, baseline, token.size);
     const bbox = path.getBoundingBox();
 
     return {
@@ -74,16 +74,6 @@ export function measureLine(tokens: Token[], fonts: FontManager): MeasuredLine {
         // Move x for next token
         if (!isLast) {
             x += measured.advanceWidth;
-
-            // Apply inter-token kerning if same font
-            const nextToken = tokens[i + 1];
-            if (token.font === nextToken.font && token.weight === nextToken.weight &&
-                token.text.length > 0 && nextToken.text.length > 0) {
-                const lastChar = token.text.slice(-1);
-                const firstChar = nextToken.text[0];
-                const scale = token.size / font.unitsPerEm;
-                x += kerningBetween(font, lastChar, firstChar, scale);
-            }
         }
     }
 

@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { program, Option } from 'commander';
 import { extname } from 'node:path';
-import opentype from 'opentype.js';
+import * as fontkit from 'fontkit';
 import { Resvg } from '@resvg/resvg-wasm';
 import { fitfull, type FitOptions, type FitResult } from './fitfull.js';
 import type { Token, FontWeight } from './types.js';
@@ -50,18 +50,16 @@ function outputResult(result: FitResult, outputPath: string, elapsedMs: number) 
 }
 
 /** Parse font argument - returns system font name or indicates it's a file path */
-async function parseFontArg(fontArg: string): Promise<{ font: string; weight: FontWeight }> {
+function parseFontArg(fontArg: string): { font: string; weight: FontWeight } {
     if (existsSync(fontArg)) {
-        if (fontArg.toLowerCase().endsWith('.ttc')) {
-            throw new Error(
-                `TrueType Collection (.ttc) files are not yet supported. ` +
-                `On macOS, try a .ttf from /System/Library/Fonts/Supplemental/ ` +
-                `(e.g. Verdana.ttf, Arial.ttf). Tracking: TTC support is planned for a future release.`
-            );
-        }
-        const font = await opentype.load(fontArg);
-        const family = font.names.fontFamily?.en || fontArg;
-        const subfamily = (font.names.fontSubfamily?.en || 'Regular').toLowerCase();
+        const result = fontkit.openSync(fontArg);
+        // Use first face if FontCollection
+        const face = 'fonts' in result
+            ? (result as fontkit.FontCollection).fonts[0]
+            : result as fontkit.Font;
+
+        const family = face.familyName || fontArg;
+        const subfamily = (face.subfamilyName || 'Regular').toLowerCase();
 
         let weight: FontWeight = 'regular';
         const isBold = subfamily.includes('bold');
@@ -88,7 +86,7 @@ async function loadTokensFromFile(tokensArg: string, fontArgs: string[]): Promis
     const familyMap = new Map<string, string>();
     for (const fontArg of fontArgs) {
         if (existsSync(fontArg)) {
-            const { font } = await parseFontArg(fontArg);
+            const { font } = parseFontArg(fontArg);
             const familyKey = normalizeFamily(font);
             familyMap.set(font.toLowerCase(), familyKey);
         }
@@ -212,7 +210,7 @@ program
                 if (opts.font.length === 0) {
                     throw new Error('Text mode requires --font');
                 }
-                const { font, weight } = await parseFontArg(opts.font[0]);
+                const { font, weight } = parseFontArg(opts.font[0]);
                 status(`Using font: ${font} ${weight}`);
 
                 fitOptions = {

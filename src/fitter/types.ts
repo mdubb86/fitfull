@@ -1,4 +1,5 @@
 import type { Token, TokenMetrics, Alignment, PositionedLayout } from '../types.js';
+import type { FontManager } from '../fonts/index.js';
 
 /** Tolerance for constraint checks (accounts for floating point drift) */
 export const FIT_TOLERANCE = 0.01;
@@ -22,6 +23,7 @@ export type FitterConfig = {
 /** Shared inputs for strategy functions */
 export type SearchContext = {
     tokens: Token[];
+    fonts: FontManager;
     tokenMetricsMap: Map<Token, TokenMetrics>;
     width: number;
     height: number;

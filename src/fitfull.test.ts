@@ -154,6 +154,20 @@ describe('Fitfull', () => {
         assert.ok(result.lines.length >= 1);
     });
 
+    test('text mode with \\n produces multiple lines', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            text: 'Hello\nWorld\nMulti-line',
+            font: INTER_REGULAR,
+            width: 200,
+            height: 150,
+        });
+        assert.equal(result.lines.length, 3, 'should produce 3 lines from \\n separators');
+        assert.equal(result.lines[0], 'Hello');
+        assert.equal(result.lines[1], 'World');
+        assert.equal(result.lines[2], 'Multi-line');
+    });
+
     test('fit throws on timeout', async () => {
         const ff = Fitfull.create();
         const tokens = Array.from({ length: 100 }, (_, i) => [

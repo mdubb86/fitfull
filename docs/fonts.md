@@ -4,6 +4,17 @@ fitfull resolves fonts through three layers, from cheapest to most expensive. Ea
 
 The implementation lives in `src/fonts/font-manager.ts`.
 
+## Font engine
+
+fitfull uses [fontkit](https://github.com/foliojs/fontkit) for font parsing and layout (since v1.1.0; earlier versions used opentype.js).
+
+The switch happened for two reasons:
+
+- **Greater font support.** fontkit handles TrueType Collections (`.ttc`) natively. Most macOS system fonts — Helvetica, HelveticaNeue, Times, Geneva, Avenir, and many others — ship as `.ttc` files. opentype.js couldn't parse them, so fitfull silently filtered them out and the iconic macOS catalog was invisible to `--font` lookup. v1.1+ loads them directly.
+- **Improved kerning.** fontkit applies GPOS (Glyph Positioning) kerning automatically when measuring and laying out text. opentype.js read kerning data only from the legacy `kern` table, which most modern fonts no longer ship. Modern fonts (including the bundled Inter) put their kern pairs in GPOS — and fitfull v1.0.x silently rendered text without kerning for any such font. v1.1+ gets the inter-letter spacing the font designers intended.
+
+There are no API changes for library or CLI users. The font engine swap is transparent.
+
 ## Resolution layers
 
 ### Layer 1: Explicit font files

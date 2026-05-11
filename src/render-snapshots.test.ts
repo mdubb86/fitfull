@@ -1,4 +1,5 @@
 import { test, describe } from 'node:test';
+import assert from 'node:assert';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Fitfull } from './fitfull.js';
@@ -62,6 +63,17 @@ describe('SVG render snapshots', () => {
             maxLines: 3,
         });
         assertSnapshot('text-multiline-right', result.svg);
+    });
+
+    test('text-newlines: hard line breaks via \\n in text mode', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            text: 'Hello\nWorld\nMulti-line',
+            font: INTER_REGULAR,
+            width: 200,
+            height: 150,
+        });
+        assertSnapshot('text-newlines', result.svg);
     });
 
     test('text-greedy: greedy wrap mode', async () => {
@@ -146,4 +158,50 @@ describe('SVG render snapshots', () => {
         });
         assertSnapshot('tokens-mixed-sizes', result.svg);
     });
+
+    test('text-kern-heavy: GPOS kerning visible in AVATAR', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            text: 'AVATAR',
+            font: INTER_REGULAR,
+            fonts: [INTER_REGULAR],
+            width: 400,
+            height: 100,
+        });
+        assertSnapshot('text-kern-heavy', result.svg);
+    });
+
+    test('text-multiline-kerned: multi-line kern-rich words', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            text: 'AVATAR TYPE WAVE',
+            font: INTER_REGULAR,
+            fonts: [INTER_REGULAR],
+            width: 300,
+            height: 200,
+            align: 'left',
+            minLines: 3,
+            maxLines: 3,
+        });
+        assertSnapshot('text-multiline-kerned', result.svg);
+    });
+
+    test('tokens-kerned: token mode with kern-rich content across weights', async () => {
+        const ff = Fitfull.create();
+        const tokens: Token[] = [
+            { text: 'AVA', size: 72, font: 'inter', weight: 'regular' },
+            { text: ' ', size: 72, font: 'inter', weight: 'regular' },
+            { text: 'TAR', size: 72, font: 'inter', weight: 'bold' },
+        ];
+        const result = await ff.fit({
+            tokens,
+            fonts: [INTER_REGULAR, INTER_BOLD],
+            width: 400,
+            height: 120,
+            align: 'left',
+            maxLines: 1,
+        });
+        assertSnapshot('tokens-kerned', result.svg);
+    });
 });
+

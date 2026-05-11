@@ -186,7 +186,8 @@ export class Fitfull {
     }
 
     /**
-     * Convert plain text to tokens (split on spaces).
+     * Convert plain text to tokens (split on newlines then spaces).
+     * Each \n becomes an explicit separator token (matching the HTML path convention).
      */
     private textToTokens(
         text: string,
@@ -195,12 +196,18 @@ export class Fitfull {
         weight: FontWeight
     ): Token[] {
         const tokens: Token[] = [];
-        const words = text.split(' ').filter(w => w.length > 0);
+        const lines = text.split('\n');
 
-        for (let i = 0; i < words.length; i++) {
-            tokens.push({ text: words[i], size, font, weight });
-            if (i < words.length - 1) {
-                tokens.push({ text: ' ', size, font, weight });
+        for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+            const words = lines[lineIdx].split(' ').filter(w => w.length > 0);
+            for (let i = 0; i < words.length; i++) {
+                tokens.push({ text: words[i], size, font, weight });
+                if (i < words.length - 1) {
+                    tokens.push({ text: ' ', size, font, weight });
+                }
+            }
+            if (lineIdx < lines.length - 1) {
+                tokens.push({ text: '\n', size, font, weight });
             }
         }
 

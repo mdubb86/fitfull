@@ -1,4 +1,5 @@
-import opentype, { Font } from 'opentype.js';
+import * as fontkit from 'fontkit';
+import type { Font } from 'fontkit';
 import getSystemFontsModule from 'get-system-fonts';
 
 // Handle both ESM default export and CommonJS
@@ -6,29 +7,48 @@ const getSystemFonts = (getSystemFontsModule as any).default ?? getSystemFontsMo
 import type { FontMap } from '../types.js';
 import type { FontWeight } from '../types.js';
 import type { FontConfig } from './types.js';
-import { buildKerningLookup } from './font-metrics.js';
 import { normalizeFamily } from './normalize.js';
 import pMap from 'p-map';
 import fuzzysort from 'fuzzysort';
 import { basename, extname } from 'node:path';
 import { performance } from 'node:perf_hooks';
 
-// Helper to safely get string from font name table entry
-function getNameString(entry: unknown): string {
-    if (typeof entry === 'string') return entry;
-    if (entry && typeof entry === 'object' && 'en' in entry) {
-        const en = (entry as { en: unknown }).en;
-        return typeof en === 'string' ? en : '';
-    }
-    return '';
-}
 
-async function loadFont(fontPath: string): Promise<opentype.Font | null> {
+/** Load a single font face from a file path (not collection-aware; returns first face). */
+function loadFont(fontPath: string): fontkit.Font | null {
     try {
-        return await opentype.load(fontPath);
+        const result = fontkit.openSync(fontPath);
+        if ('fonts' in result) {
+            return (result as fontkit.FontCollection).fonts[0] ?? null;
+        }
+        return result as fontkit.Font;
     } catch {
         return null;
     }
+}
+
+/**
+ * Load a font from an indexed path (may be "path#postscriptName" for collections).
+ * Returns the specific face from a TTC, or the single font otherwise.
+ */
+function loadFontFromIndexedPath(indexedPath: string): fontkit.Font | null {
+    const hashIdx = indexedPath.lastIndexOf('#');
+    if (hashIdx !== -1) {
+        const filePath = indexedPath.slice(0, hashIdx);
+        const postscriptName = indexedPath.slice(hashIdx + 1);
+        try {
+            const result = fontkit.openSync(filePath);
+            if ('fonts' in result) {
+                const collection = result as fontkit.FontCollection;
+                const face = collection.getFont(postscriptName);
+                return face ?? collection.fonts[0] ?? null;
+            }
+            return result as fontkit.Font;
+        } catch {
+            return null;
+        }
+    }
+    return loadFont(indexedPath);
 }
 
 function normalizeForMatch(s: string): string {
@@ -70,25 +90,20 @@ async function findInSystemFonts(
         .map((r) => r.obj);
 
     for (const candidate of candidates) {
-        if (candidate.toLowerCase().endsWith('.ttc')) continue;
-        const font = await loadFont(candidate);
+        const font = loadFont(candidate);
         if (!font) continue;
-        const pf = getNameString((font.names as any).preferredFamily).toLowerCase();
-        const ff = getNameString(font.names.fontFamily).toLowerCase();
-        if (pf === family || ff === family) return candidate;
+        const ff = (font.familyName || '').toLowerCase();
+        if (ff === family) return candidate;
     }
 
     // Layer 3: full scan fallback — check remaining paths
     const candidateSet = new Set(candidates);
-    const remaining = allPaths.filter(
-        (p) => !candidateSet.has(p) && !p.toLowerCase().endsWith('.ttc')
-    );
+    const remaining = allPaths.filter((p) => !candidateSet.has(p));
     for (const fontPath of remaining) {
-        const font = await loadFont(fontPath);
+        const font = loadFont(fontPath);
         if (!font) continue;
-        const pf = getNameString((font.names as any).preferredFamily).toLowerCase();
-        const ff = getNameString(font.names.fontFamily).toLowerCase();
-        if (pf === family || ff === family) return fontPath;
+        const ff = (font.familyName || '').toLowerCase();
+        if (ff === family) return fontPath;
     }
 
     return null;
@@ -111,10 +126,9 @@ function isFilePath(str: string): boolean {
 function resolveFontPathFromIndex(
     ref: string,
     weight: string,
-    primaryIndex: Map<string, Map<string, string>>,
-    secondaryIndex: Map<string, Map<string, string>>,
+    index: Map<string, Map<string, string>>,
 ): string | null {
-    const familyMap = primaryIndex.get(ref.toLowerCase()) ?? secondaryIndex.get(ref.toLowerCase());
+    const familyMap = index.get(ref.toLowerCase());
 
     if (!familyMap) {
         return null;
@@ -151,9 +165,8 @@ export class FontManager {
     private pendingLoads: Map<string, Promise<Font>> = new Map();
     private readonly systemFontsProvider: () => Promise<string[]>;
 
-    /** Per-instance system font index cache */
-    private primaryIndex: Map<string, Map<string, string>> | null = null;
-    private secondaryIndex: Map<string, Map<string, string>> | null = null;
+    /** Per-instance system font index cache (keyed on familyName) */
+    private index: Map<string, Map<string, string>> | null = null;
     private indexPromise: Promise<void> | null = null;
 
     private constructor(systemFontsProvider?: () => Promise<string[]>) {
@@ -161,47 +174,47 @@ export class FontManager {
     }
 
     /**
-     * Build indexes of system fonts by loading and parsing each one.
-     * Primary index uses preferredFamily (Name ID 16) — matches CSS font-family names.
-     * Secondary index uses fontFamily (Name ID 1) — the internal font name.
+     * Build index of system fonts by loading and parsing each one.
+     * Keyed on familyName (fontkit direct property).
      * Safe to call concurrently — deduplicates via shared promise.
      */
     private async buildSystemFontIndexes(): Promise<void> {
-        if (this.primaryIndex) return;
+        if (this.index) return;
         if (this.indexPromise) return this.indexPromise;
 
         this.indexPromise = (async () => {
-            const primary = new Map<string, Map<string, string>>();
-            const secondary = new Map<string, Map<string, string>>();
+            const index = new Map<string, Map<string, string>>();
             const paths = await this.systemFontsProvider();
 
-            const filteredPaths = paths.filter((p: string) => !p.toLowerCase().endsWith('.ttc'));
-
-            await pMap(filteredPaths, async (fontPath: string) => {
-                const font = await loadFont(fontPath);
-                if (!font) return;
-
-                const preferredFamily = getNameString((font.names as any).preferredFamily).toLowerCase();
-                const family = getNameString(font.names.fontFamily).toLowerCase();
-                const subfamily = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
-
-                if (preferredFamily) {
-                    if (!primary.has(preferredFamily)) {
-                        primary.set(preferredFamily, new Map());
-                    }
-                    primary.get(preferredFamily)!.set(subfamily, fontPath);
+            const addFace = (font: fontkit.Font, indexedPath: string) => {
+                const family = (font.familyName || '').toLowerCase();
+                const subfamily = (font.subfamilyName || 'regular').toLowerCase();
+                if (!family) return;
+                if (!index.has(family)) {
+                    index.set(family, new Map());
                 }
+                index.get(family)!.set(subfamily, indexedPath);
+            };
 
-                if (family) {
-                    if (!secondary.has(family)) {
-                        secondary.set(family, new Map());
+            await pMap(paths, async (fontPath: string) => {
+                try {
+                    const result = fontkit.openSync(fontPath);
+                    if ('fonts' in result) {
+                        // FontCollection: enumerate each face
+                        const collection = result as fontkit.FontCollection;
+                        for (const face of collection.fonts) {
+                            const indexedPath = `${fontPath}#${face.postscriptName}`;
+                            addFace(face, indexedPath);
+                        }
+                    } else {
+                        addFace(result as fontkit.Font, fontPath);
                     }
-                    secondary.get(family)!.set(subfamily, fontPath);
+                } catch {
+                    // skip unreadable fonts
                 }
             }, { concurrency: 32 });
 
-            this.primaryIndex = primary;
-            this.secondaryIndex = secondary;
+            this.index = index;
         })();
 
         return this.indexPromise;
@@ -209,8 +222,6 @@ export class FontManager {
 
     /**
      * Ensure the system font index is built.
-     * Warn suppression is handled by the caller so that opentype.js warnings
-     * are silenced for the entire system-scan phase.
      */
     private async ensureSystemIndex(): Promise<void> {
         return this.buildSystemFontIndexes();
@@ -226,7 +237,7 @@ export class FontManager {
             return ref;
         }
         await this.ensureSystemIndex();
-        return resolveFontPathFromIndex(ref, weight, this.primaryIndex!, this.secondaryIndex!);
+        return resolveFontPathFromIndex(ref, weight, this.index!);
     }
 
     /**
@@ -271,9 +282,7 @@ export class FontManager {
                 try {
                     const path = await this.resolveFontPath(ref, weight);
                     if (path === null) {
-                        errors.push(`[${family}/${weight}] System font "${ref}" not found. Make sure it's installed. ` +
-                            `(macOS: many system fonts are .ttc files which fitfull doesn't yet support — ` +
-                            `try /System/Library/Fonts/Supplemental/ for .ttf alternatives.)`);
+                        errors.push(`[${family}/${weight}] System font "${ref}" not found. Make sure it's installed.`);
                     } else {
                         familyPaths.set(weight, path);
                     }
@@ -294,7 +303,9 @@ export class FontManager {
             const fontMap: FontMap = {};
 
             for (const [weight, path] of paths) {
-                fontMap[weight] = await opentype.load(path);
+                const loaded = loadFontFromIndexedPath(path);
+                if (!loaded) throw new Error(`Failed to load font: ${path}`);
+                fontMap[weight] = loaded;
             }
 
             this.fonts[family] = fontMap;
@@ -320,16 +331,13 @@ export class FontManager {
         // Layer 1: register explicit font files directly
         const failedPaths: string[] = [];
         for (const fontPath of explicitPaths) {
-            const font = await loadFont(fontPath);
+            const font = loadFont(fontPath);
             if (!font) {
                 failedPaths.push(fontPath);
                 continue;
             }
-            const family = (
-                getNameString((font.names as any).preferredFamily) ||
-                getNameString(font.names.fontFamily)
-            ).toLowerCase();
-            const subfamilyRaw = (getNameString(font.names.fontSubfamily) || 'regular').toLowerCase();
+            const family = (font.familyName || '').toLowerCase();
+            const subfamilyRaw = (font.subfamilyName || 'regular').toLowerCase();
             const weight = subfamilyToWeight[subfamilyRaw] ?? 'regular';
             if (!family) continue;
             if (!this.fonts[family]) this.fonts[family] = {};
@@ -396,33 +404,24 @@ export class FontManager {
         const systemResolved: Array<{ family: string; path: string }> = [];
         const scanStart = performance.now();
 
-        // Suppress opentype.js console.warn for all system font loading (index build + fuzzy scan)
-        const originalWarn = console.warn;
-        console.warn = () => {};
-        try {
-            for (const { family, weight, originalName } of toResolve) {
-                try {
-                    // Try exact-match via system index first
-                    let resolvedPath = await this.resolveFontPath(originalName, weight);
-                    if (!resolvedPath) {
-                        // Fuzzy fallback: try filename pre-filter then full scan
-                        resolvedPath = await findInSystemFonts(originalName.toLowerCase(), allSystemPaths);
-                    }
-                    if (resolvedPath) {
-                        resolved.push({ family, weight, path: resolvedPath });
-                        // Track any font resolved via the system scan (index or fuzzy fallback)
-                        systemResolved.push({ family, path: resolvedPath });
-                    } else {
-                        errors.push(`[${family}/${weight}] Font "${originalName}" not found. Make sure it's installed or pass the font file path directly. ` +
-                            `(macOS: many system fonts are .ttc files which fitfull doesn't yet support — ` +
-                            `try /System/Library/Fonts/Supplemental/ for .ttf alternatives.)`);
-                    }
-                } catch (e: any) {
-                    errors.push(`[${family}/${weight}] ${e.message}`);
+        for (const { family, weight, originalName } of toResolve) {
+            try {
+                // Try exact-match via system index first
+                let resolvedPath = await this.resolveFontPath(originalName, weight);
+                if (!resolvedPath) {
+                    // Fuzzy fallback: try filename pre-filter then full scan
+                    resolvedPath = await findInSystemFonts(originalName.toLowerCase(), allSystemPaths);
                 }
+                if (resolvedPath) {
+                    resolved.push({ family, weight, path: resolvedPath });
+                    // Track any font resolved via the system scan (index or fuzzy fallback)
+                    systemResolved.push({ family, path: resolvedPath });
+                } else {
+                    errors.push(`[${family}/${weight}] Font "${originalName}" not found. Make sure it's installed or pass the font file path directly.`);
+                }
+            } catch (e: any) {
+                errors.push(`[${family}/${weight}] ${e.message}`);
             }
-        } finally {
-            console.warn = originalWarn;
         }
 
         if (errors.length > 0) {
@@ -441,20 +440,20 @@ export class FontManager {
             );
         }
 
-        // Second pass: load fonts (create promises and register in pendingLoads)
+        // Second pass: load fonts (sync with fontkit, wrap in resolved promise for API compatibility)
         for (const { family, weight, path } of resolved) {
             const key = `${family}:${weight}`;
 
-            const loadPromise = opentype.load(path).then(font => {
-                // Store in cache and clean up pending
+            const loadPromise = (async () => {
+                const font = loadFontFromIndexedPath(path);
+                if (!font) throw new Error(`Failed to load font: ${path}`);
                 if (!this.fonts[family]) {
                     this.fonts[family] = {};
                 }
                 this.fonts[family][weight] = font;
                 this.pendingLoads.delete(key);
-
                 return font;
-            }).catch(err => {
+            })().catch(err => {
                 this.pendingLoads.delete(key);
                 throw err;
             });
@@ -483,14 +482,6 @@ export class FontManager {
             throw new Error(`Font weight "${weight}" not found in family "${family}". Available: ${Object.keys(familyFonts).join(', ')}`);
         }
         return font;
-    }
-
-    /**
-     * Get kerning lookup for a specific family and weight
-     */
-    getKerningLookup(family: string, weight: string): Map<string, number> {
-        const font = this.getFont(family, weight);
-        return buildKerningLookup(font);
     }
 
     /**

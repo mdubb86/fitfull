@@ -84,7 +84,8 @@ describe('Fitter', async () => {
         const fit = fitter.computeBestFit();
 
         assert.strictEqual(fit.layout.lines.length, 3, 'should have exactly 3 lines');
-        assert.ok(fit.layout.width <= 400, 'width should fit');
+        // Allow 0.1px tolerance for floating-point rounding (fontkit GPOS kerning)
+        assert.ok(fit.layout.width <= 400.1, 'width should fit');
         assert.ok(fit.layout.height <= 300, 'height should fit');
     });
 
@@ -373,6 +374,44 @@ describe('Fitter edge cases', async () => {
         });
         const fit = fitter.computeBestFit();
         assert.ok(approxEqual(fit.maxTextHeight, 30, 0.5));
+    });
+
+    test('trimmed boundary tokens are still found in metrics map (balanced)', () => {
+        // Tokens with embedded trailing/leading whitespace — when wrapping forces a line
+        // break, trimLineWhitespace creates new Token objects via spread. Those new objects
+        // are not in tokenMetricsMap (keyed by object identity), which previously caused a
+        // crash in getLineMetrics: "Cannot read properties of undefined (reading 'ascent')".
+        const tokens: Token[] = [
+            { text: 'Hello ', size: 36, font: 'inter', weight: 'regular' },
+            { text: 'Bold', size: 36, font: 'inter', weight: 'bold' },
+            { text: ' World', size: 36, font: 'inter', weight: 'regular' },
+        ];
+        // Use a narrow box to force wrapping so trimLineWhitespace actually fires
+        const fitter = new Fitter(tokens, fonts, 120, 400, { align: 'left', wrap: 'balanced' });
+        const fit = fitter.computeBestFit();
+        assert.ok(fit.layout.lines.length >= 2, 'should wrap to multiple lines');
+        assert.ok(fit.layout.width <= 120 + EPSILON, `should fit within width constraint, got ${fit.layout.width}`);
+        for (const line of fit.layout.lines) {
+            assert.ok(!line.text.startsWith(' '), `line should not start with space: "${line.text}"`);
+            assert.ok(!line.text.endsWith(' '), `line should not end with space: "${line.text}"`);
+        }
+    });
+
+    test('trimmed boundary tokens are still found in metrics map (greedy)', () => {
+        // Same crash scenario as above but exercising the greedy wrapping path.
+        const tokens: Token[] = [
+            { text: 'Hello ', size: 36, font: 'inter', weight: 'regular' },
+            { text: 'Bold', size: 36, font: 'inter', weight: 'bold' },
+            { text: ' World', size: 36, font: 'inter', weight: 'regular' },
+        ];
+        const fitter = new Fitter(tokens, fonts, 120, 400, { align: 'left', wrap: 'greedy' });
+        const fit = fitter.computeBestFit();
+        assert.ok(fit.layout.lines.length >= 2, 'should wrap to multiple lines');
+        assert.ok(fit.layout.width <= 120 + EPSILON, `should fit within width constraint, got ${fit.layout.width}`);
+        for (const line of fit.layout.lines) {
+            assert.ok(!line.text.startsWith(' '), `line should not start with space: "${line.text}"`);
+            assert.ok(!line.text.endsWith(' '), `line should not end with space: "${line.text}"`);
+        }
     });
 });
 

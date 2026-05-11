@@ -10,6 +10,8 @@ Fit text into a given space. Outputs SVG or PNG with text optimally scaled and w
 - **Smart wrapping**: Balanced (even widths) or greedy (fill lines first) modes
 - **HTML input**: Pass styled HTML with `<b>`, `<i>`, `<style>` blocks, and inline CSS
 - **Mixed styles**: Support for varying font sizes, weights, and families within the same text
+- **TTC support**: TrueType Collections work, including macOS system fonts (Helvetica, Arial, etc.)
+- **Improved kerning**: GPOS-aware kerning for accurate inter-character spacing
 - **Vector output**: SVG with embedded font paths (no font dependencies)
 - **Raster output**: PNG using resvg for high-quality rendering
 
@@ -284,8 +286,7 @@ For an explanation of how the search picks an arrangement and scale, see [docs/a
 
 ## Known Limitations
 
-- **TrueType Collections (.ttc) are not supported.** Most macOS system fonts (Helvetica, HelveticaNeue, Times, Geneva, Avenir, Menlo, etc.) ship as `.ttc` files in `/System/Library/Fonts/` and are invisible to fitfull's `--font` lookup. As a workaround, use a plain `.ttf` from `/System/Library/Fonts/Supplemental/` (e.g. `Verdana.ttf`, `Arial.ttf`, `Times New Roman.ttf`), or specify any `.ttf`/`.otf` file by path. Native `.ttc` support is planned for v1.1.
-- **`.dfont`, `.woff`, `.woff2` are not supported** — only `.ttf` and `.otf` work.
+- **`.dfont`, `.woff`, `.woff2` are not supported** — only `.ttf`, `.otf`, and `.ttc` work.
 
 ## License
 
