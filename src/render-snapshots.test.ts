@@ -205,3 +205,31 @@ describe('SVG render snapshots', () => {
     });
 });
 
+test('SVG output contains a viewBox matching width and height', async () => {
+    const ff = Fitfull.create();
+    const result = await ff.fit({
+        text: 'Hello',
+        font: INTER_REGULAR,
+        width: 200,
+        height: 60,
+    });
+
+    const viewBoxMatch = result.svg.match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+    assert.ok(viewBoxMatch, `expected viewBox attribute in SVG, got header: ${result.svg.slice(0, 200)}`);
+
+    const [, viewBoxW, viewBoxH] = viewBoxMatch;
+    assert.equal(
+        parseFloat(viewBoxW).toFixed(2),
+        result.width.toFixed(2),
+        'viewBox width must match result.width'
+    );
+    assert.equal(
+        parseFloat(viewBoxH).toFixed(2),
+        result.height.toFixed(2),
+        'viewBox height must match result.height'
+    );
+
+    assert.match(result.svg, /width="[\d.]+"/);
+    assert.match(result.svg, /height="[\d.]+"/);
+});
+
