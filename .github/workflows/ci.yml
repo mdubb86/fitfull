@@ -24,3 +24,60 @@ jobs:
       - run: pnpm build
 
       - run: pnpm test
+
+  # Smoke-test the bun-compiled binary against TTF and TTC inputs. Catches
+  # bun-compile-specific regressions (e.g., fontkit name getters returning
+  # Buffer instead of string under bun --compile) that don't surface under
+  # Node-driven unit tests. See v1.1.1 release notes for the original bug.
+  smoke:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Cache TTC fixture
+        id: cache-ttc
+        uses: actions/cache@v4
+        with:
+          path: /tmp/fitfull-smoke-fixture.ttc
+          key: ttc-fixture-notoserif-v1
+
+      - name: Download TTC fixture
+        if: steps.cache-ttc.outputs.cache-hit != 'true'
+        run: |
+          curl -fsSL --max-time 60 \
+            -o /tmp/fitfull-smoke-fixture.ttc \
+            "https://github.com/notofonts/noto-cjk/raw/main/Serif/OTC/NotoSerifCJK-Regular.ttc"
+          test "$(wc -c < /tmp/fitfull-smoke-fixture.ttc)" -gt 1000000
+
+      - name: Build bun-compiled binary
+        run: |
+          bun build --compile --target=bun-linux-x64 \
+            src/cli-bun.ts --outfile fitfull-smoke
+
+      - name: TTF render
+        run: |
+          ./fitfull-smoke --size 200x100 --text "Hello" \
+            --font fonts/Inter-Regular.ttf \
+            --output /tmp/smoke-ttf.png
+          test -s /tmp/smoke-ttf.png
+          head -c 8 /tmp/smoke-ttf.png | od -c | grep -q "211   P   N   G"
+
+      - name: TTC render
+        run: |
+          ./fitfull-smoke --size 200x100 --text "Hello" \
+            --font /tmp/fitfull-smoke-fixture.ttc \
+            --output /tmp/smoke-ttc.png
+          test -s /tmp/smoke-ttc.png
+          head -c 8 /tmp/smoke-ttc.png | od -c | grep -q "211   P   N   G"
