@@ -43,7 +43,7 @@ export function lineToSVG(line: MeasuredLine, options: {
     const offsetX = -bbox.x1 + padding;
     const offsetY = -bbox.y1 + padding;
 
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width.toFixed(2)}" height="${height.toFixed(2)}" overflow="visible"`;
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width.toFixed(2)}" height="${height.toFixed(2)}" viewBox="0 0 ${width.toFixed(2)} ${height.toFixed(2)}" overflow="visible"`;
     if (background) {
         svg += ` style="background: ${background}"`;
     }
@@ -90,13 +90,13 @@ export function layoutToSVG(
     if (options.background) assertValidColor(options.background, 'background');
 
     if (layout.lines.length === 0) {
-        return '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0"></svg>';
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>';
     }
 
     const width = layout.width + padding * 2;
     const height = layout.height + padding * 2;
 
-    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width.toFixed(2)}" height="${height.toFixed(2)}" overflow="visible"`;
+    let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width.toFixed(2)}" height="${height.toFixed(2)}" viewBox="0 0 ${width.toFixed(2)} ${height.toFixed(2)}" overflow="visible"`;
     if (background) {
         svg += ` style="background: ${background}"`;
     }
