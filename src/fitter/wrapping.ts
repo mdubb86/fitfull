@@ -1,5 +1,5 @@
 import type { Token, TokenMetrics } from '../types.js';
-import type { FontManager } from '../fonts/index.js';
+import type { FontProvider } from '../fonts/index.js';
 import { getLineMetrics, measureSingleTokenMetrics } from '../measure/index.js';
 
 /**
@@ -14,7 +14,7 @@ import { getLineMetrics, measureSingleTokenMetrics } from '../measure/index.js';
 export function getOrComputeTokenMetrics(
     token: Token,
     tokenMetricsMap: Map<Token, TokenMetrics>,
-    fonts: FontManager
+    fonts: FontProvider
 ): TokenMetrics {
     let metrics = tokenMetricsMap.get(token);
     if (metrics === undefined) {

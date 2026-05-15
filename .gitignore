@@ -10,3 +10,6 @@ fitfull
 *.log
 debug-fonts.cjs
 docs/superpowers/
+test-results/
+playwright-report/
+tests/e2e/fixture-bundle.js

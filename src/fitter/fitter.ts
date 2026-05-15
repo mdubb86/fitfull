@@ -1,6 +1,7 @@
 import type { Token, TokenMetrics, Alignment } from '../types.js';
 import { measureLine, measureAllTokenMetrics, getAdvanceWidth, computeLayout } from '../measure/index.js';
-import { FontManager, getFontMetrics } from '../fonts/index.js';
+import { getFontMetrics } from '../fonts/index.js';
+import type { FontProvider } from '../fonts/index.js';
 import type { FitterConfig, BestFit, SearchContext } from './types.js';
 import { FIT_TOLERANCE } from './types.js';
 import { findGreedyFit } from './greedy.js';
@@ -9,7 +10,7 @@ import { findBalancedFit } from './balanced.js';
 /** Fitter class - finds optimal arrangement for tokens within constraints */
 export default class Fitter {
     private readonly tokens: Token[];
-    private readonly fonts: FontManager;
+    private readonly fonts: FontProvider;
     private readonly width: number;
     private readonly height: number;
     private readonly textHeight?: number;
@@ -23,7 +24,7 @@ export default class Fitter {
 
     constructor(
         tokens: Token[],
-        fonts: FontManager,
+        fonts: FontProvider,
         width: number,
         height: number,
         config: FitterConfig

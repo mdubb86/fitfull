@@ -1,6 +1,7 @@
 import type { Font } from 'fontkit';
 import type { Token, MeasuredToken, MeasuredLine } from '../types.js';
-import { FontManager, getFontMetrics } from '../fonts/index.js';
+import { getFontMetrics } from '../fonts/index.js';
+import type { FontProvider } from '../fonts/index.js';
 import { getAdvanceWidth } from './metrics.js';
 import { composeGlyphRunPath } from './path-adapter.js';
 
@@ -33,7 +34,7 @@ export function measureToken(
  * Measure a line of tokens
  * All tokens are positioned on the same baseline
  */
-export function measureLine(tokens: Token[], fonts: FontManager): MeasuredLine {
+export function measureLine(tokens: Token[], fonts: FontProvider): MeasuredLine {
     if (tokens.length === 0) {
         return {
             tokens: [],

@@ -1,7 +1,7 @@
-import { performance } from 'node:perf_hooks';
 import type { Token, FontWeight, Alignment } from './types.js';
 import type { FitterConfig } from './fitter/types.js';
-import { FontManager } from './fonts/index.js';
+import type { FontProvider } from './fonts/font-provider.js';
+import type { ParseHtml } from './html-parser.js';
 import { layoutToSVG } from './measure/index.js';
 import Fitter from './fitter/index.js';
 import { htmlToTokens } from './html-to-tokens.js';
@@ -12,8 +12,8 @@ export type FitfullInput =
     | { text: string; font: string; fontWeight?: FontWeight }
     | { html: string };
 
-/** Options for fitting text */
-export type FitOptions = FitfullInput & {
+/** Options shared by all environments (no font-source field). */
+export type FitOptionsBase = FitfullInput & {
     // Dimensions - required
     width: number;
     height: number;
@@ -26,10 +26,6 @@ export type FitOptions = FitfullInput & {
     lineSpacing?: number;
     align?: Alignment;
     wrap?: 'balanced' | 'greedy';
-    /** Font file paths to pre-load. Prevents system font scanning if all needed fonts are covered. */
-    fonts?: string[];
-    /** @internal Used by CLI to format the resolution hint message. */
-    _hint?: 'cli' | 'api';
     /** Maximum number of tokens. Default: 1000. Pass Infinity to disable. */
     maxTokens?: number;
     /** Maximum fit duration in milliseconds. Default: 10000. Pass Infinity to disable. */
@@ -53,39 +49,20 @@ export interface FitResult {
 }
 
 /**
- * High-level API for text fitting.
- * Manages fonts internally and provides simple fit() and fitToSVG() methods.
+ * Environment-agnostic fitting engine. Node and browser entries each subclass
+ * this, supplying their own FontProvider and HTML parser.
  */
-export class Fitfull {
-    private fonts: FontManager | null = null;
-    private static instance: Fitfull | null = null;
-
-    constructor() {}
-
-    /**
-     * Get the singleton instance.
-     * Font cache persists across all fit() calls.
-     */
-    static get(): Fitfull {
-        if (!Fitfull.instance) {
-            Fitfull.instance = new Fitfull();
-        }
-        return Fitfull.instance;
-    }
-
-    /**
-     * Create a new instance with its own font cache.
-     * Use when you need isolated font management or want to allow GC.
-     */
-    static create(): Fitfull {
-        return new Fitfull();
-    }
+export class FitfullCore {
+    constructor(
+        protected readonly fontProvider: FontProvider,
+        protected readonly parseHtml: ParseHtml,
+    ) {}
 
     /**
      * Fit text/tokens/html into the given dimensions.
      * Automatically loads required fonts and renders to SVG.
      */
-    async fit(options: FitOptions): Promise<FitResult> {
+    async fit(options: FitOptionsBase & { fonts?: unknown; _hint?: 'cli' | 'api' }): Promise<FitResult> {
         const tokens = await this.resolveTokens(options);
 
         if (tokens.length === 0) {
@@ -104,19 +81,14 @@ export class Fitfull {
         if (isFinite(maxTokens) && tokens.length > maxTokens) {
             throw new Error(
                 `Input too large: ${tokens.length} tokens (max ${maxTokens}). ` +
-                `Reduce content or set maxTokens to increase the limit.`
+                `Reduce content or set maxTokens to increase the limit.`,
             );
         }
 
-        // Ensure FontManager exists
-        if (!this.fonts) {
-            this.fonts = await FontManager.create();
-        }
-
         // Load any fonts needed by these tokens
-        await this.fonts.loadForTokens(tokens, {
-            explicitPaths: options.fonts ?? [],
-            hint: options._hint ?? 'api',
+        await this.fontProvider.loadForTokens(tokens, {
+            fonts: options.fonts,
+            _hint: options._hint,
         });
 
         const timeout = options.timeout ?? 10_000;
@@ -135,7 +107,7 @@ export class Fitfull {
         };
 
         // Run the fitter
-        const fitter = new Fitter(tokens, this.fonts, options.width, options.height, config);
+        const fitter = new Fitter(tokens, this.fontProvider, options.width, options.height, config);
         const result = fitter.computeBestFit();
 
         // Render to SVG
@@ -156,17 +128,15 @@ export class Fitfull {
         };
     }
 
-    /**
-     * Clear the font cache, allowing fonts to be garbage collected.
-     */
+    /** Drop all loaded fonts. Preserved from the original public API. */
     clearFonts(): void {
-        this.fonts = null;
+        this.fontProvider.clear();
     }
 
     /**
      * Convert input options to tokens array.
      */
-    private async resolveTokens(options: FitOptions): Promise<Token[]> {
+    private async resolveTokens(options: FitOptionsBase): Promise<Token[]> {
         if ('tokens' in options) {
             return options.tokens;
         }
@@ -178,7 +148,7 @@ export class Fitfull {
         }
 
         if ('html' in options) {
-            return htmlToTokens(options.html);
+            return htmlToTokens(options.html, this.parseHtml);
         }
 
         // TypeScript should make this unreachable
@@ -193,7 +163,7 @@ export class Fitfull {
         text: string,
         size: number,
         font: string,
-        weight: FontWeight
+        weight: FontWeight,
     ): Token[] {
         const tokens: Token[] = [];
         const lines = text.split('\n');
@@ -214,19 +184,3 @@ export class Fitfull {
         return tokens;
     }
 }
-
-/**
- * Namespace providing access to singleton and factory.
- */
-export const fitfull = {
-    /**
-     * Get the singleton instance.
-     * Font cache persists across all fit() calls.
-     */
-    get: (): Fitfull => Fitfull.get(),
-
-    /**
-     * Create a new instance with its own font cache.
-     */
-    create: (): Fitfull => Fitfull.create(),
-};

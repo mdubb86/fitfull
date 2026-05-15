@@ -122,6 +122,42 @@ All input modes accept these fitting options:
 
 See [docs/fonts.md](./docs/fonts.md) for how `fonts` and font resolution work.
 
+## Browser usage
+
+fitfull runs in the browser via the `fitfull/browser` export. Fonts are supplied
+as bytes (no filesystem, no system-font scanning):
+
+```js
+import { Fitfull } from 'fitfull/browser';
+
+const ff = new Fitfull();
+const bytes = await fetch('/fonts/Inter-Regular.ttf').then(r => r.arrayBuffer());
+ff.registerFont('Inter', 'regular', bytes);
+
+const { svg } = await ff.fit({
+  text: 'Hello', font: 'Inter', fontWeight: 'regular',
+  width: 400, height: 100,
+});
+document.querySelector('#out').innerHTML = svg;
+```
+
+Or one-shot:
+
+```js
+import { fitfull } from 'fitfull/browser';
+
+const { svg } = await fitfull({
+  text: 'Hello', font: 'Inter', fontWeight: 'regular',
+  width: 400, height: 100,
+  fonts: [{ family: 'Inter', weight: 'regular', bytes }],
+});
+```
+
+The browser export is SVG-only and supports text, tokens, and HTML input modes.
+PNG output and system-font discovery are Node-only. Because the entry point ships
+unbundled ESM with bare imports (`fontkit`), consume it through a bundler
+(Vite, esbuild, webpack, Rollup) — the same as any modern npm package.
+
 ## CLI Usage
 
 ```bash

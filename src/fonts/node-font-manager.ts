@@ -5,13 +5,13 @@ import getSystemFontsModule from 'get-system-fonts';
 // Handle both ESM default export and CommonJS
 const getSystemFonts = (getSystemFontsModule as any).default ?? getSystemFontsModule;
 import type { FontMap } from '../types.js';
-import type { FontWeight } from '../types.js';
+import type { FontWeight, Token } from '../types.js';
 import type { FontConfig } from './types.js';
+import type { FontProvider } from './font-provider.js';
 import { normalizeFamily } from './normalize.js';
 import pMap from 'p-map';
 import fuzzysort from 'fuzzysort';
 import { basename, extname } from 'node:path';
-import { performance } from 'node:perf_hooks';
 
 
 /** Load a single font face from a file path (not collection-aware; returns first face). */
@@ -157,9 +157,11 @@ function resolveFontPathFromIndex(
 }
 
 /**
- * FontManager - loads and manages fonts for text fitting
+ * NodeFontManager - loads and manages fonts for text fitting in Node
+ * (system-font discovery + filesystem). Implements the environment-agnostic
+ * FontProvider contract consumed by the fitting pipeline.
  */
-export class FontManager {
+export class NodeFontManager implements FontProvider {
     private fonts: { [family: string]: FontMap } = {};
     /** In-flight load promises to deduplicate concurrent requests */
     private pendingLoads: Map<string, Promise<Font>> = new Map();
@@ -169,7 +171,7 @@ export class FontManager {
     private index: Map<string, Map<string, string>> | null = null;
     private indexPromise: Promise<void> | null = null;
 
-    private constructor(systemFontsProvider?: () => Promise<string[]>) {
+    constructor(systemFontsProvider?: () => Promise<string[]>) {
         this.systemFontsProvider = systemFontsProvider ?? getSystemFonts;
     }
 
@@ -241,12 +243,12 @@ export class FontManager {
     }
 
     /**
-     * Create and initialize a FontManager.
+     * Create and initialize a NodeFontManager.
      * If config is provided, validates all fonts exist before loading any.
      * If no config, creates an empty manager - use loadForTokens() to load fonts on demand.
      */
-    static async create(config?: FontConfig): Promise<FontManager> {
-        const manager = new FontManager();
+    static async create(config?: FontConfig): Promise<NodeFontManager> {
+        const manager = new NodeFontManager();
         if (config) {
             await manager.loadConfigs(config);
         }
@@ -254,15 +256,15 @@ export class FontManager {
     }
 
     /**
-     * Create a FontManager with advanced options including font config and an
+     * Create a NodeFontManager with advanced options including font config and an
      * optional system font provider override (primarily for testing).
-     * Most consumers should use FontManager.create() instead.
+     * Most consumers should use NodeFontManager.create() instead.
      */
     static async createWithOptions(options: {
         fonts?: FontConfig;
         getSystemFonts?: () => Promise<string[]>;
-    }): Promise<FontManager> {
-        const fm = new FontManager(options.getSystemFonts);
+    }): Promise<NodeFontManager> {
+        const fm = new NodeFontManager(options.getSystemFonts);
         if (options.fonts) {
             await fm.loadConfigs(options.fonts);
         }
@@ -319,14 +321,16 @@ export class FontManager {
      * Safe to call concurrently - duplicate loads are deduplicated.
      *
      * @param tokens - Array of tokens to scan for font requirements
-     * @param options - Optional explicit font paths (Layer 1) and hint for log messages
+     * @param options - `fonts` carries explicit font file paths (Layer 1, a
+     *   `string[]` for Node); `_hint` selects the log-message style.
      * @throws Error if any required font cannot be found
      */
     async loadForTokens(
-        tokens: import('../types.js').Token[],
-        options: { explicitPaths?: string[]; hint?: 'cli' | 'api' } = {}
+        tokens: Token[],
+        options: { fonts?: unknown; _hint?: 'cli' | 'api' } = {}
     ): Promise<void> {
-        const { explicitPaths = [], hint = 'api' } = options;
+        const explicitPaths = (options.fonts as string[] | undefined) ?? [];
+        const hint = options._hint ?? 'api';
 
         // Layer 1: register explicit font files directly
         const failedPaths: string[] = [];
@@ -490,5 +494,15 @@ export class FontManager {
     getUnitsPerEm(family: string, weight: string): number {
         const font = this.getFont(family, weight);
         return font.unitsPerEm;
+    }
+
+    /**
+     * Drop all loaded fonts and any in-flight load promises.
+     * The system-font discovery index is a separate cache and is left intact.
+     * Backs Fitfull.clearFonts().
+     */
+    clear(): void {
+        this.fonts = {};
+        this.pendingLoads.clear();
     }
 }

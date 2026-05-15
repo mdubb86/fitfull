@@ -7,7 +7,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FontManager } from './fonts/index.js';
+import { NodeFontManager } from './fonts/node-font-manager.js';
 import Fitter from './fitter/index.js';
 import type { Token } from './types.js';
 
@@ -18,7 +18,7 @@ const FONTS_DIR = join(__dirname, '..', 'fonts');
 const INTER_REGULAR = join(FONTS_DIR, 'Inter-Regular.ttf');
 const INTER_BOLD = join(FONTS_DIR, 'Inter-Bold.ttf');
 
-let fonts: FontManager;
+let fonts: NodeFontManager;
 
 // Helper to create tokens from text
 function textToTokens(text: string, size: number, fontFamily: string, weight: 'regular' | 'bold' = 'regular'): Token[] {
@@ -42,7 +42,7 @@ function approxEqual(a: number, b: number, tolerance = EPSILON): boolean {
 
 describe('Fitter', async () => {
     // Load fonts once before all tests
-    fonts = await FontManager.create({
+    fonts = await NodeFontManager.create({
         inter: {
             regular: INTER_REGULAR,
             bold: INTER_BOLD,
@@ -154,7 +154,7 @@ describe('Fitter', async () => {
 });
 
 describe('Layout positioning', async () => {
-    fonts = await FontManager.create({
+    fonts = await NodeFontManager.create({
         inter: {
             regular: INTER_REGULAR,
             bold: INTER_BOLD,
@@ -311,7 +311,7 @@ describe('Layout positioning', async () => {
 });
 
 describe('Fitter edge cases', async () => {
-    fonts = await FontManager.create({
+    fonts = await NodeFontManager.create({
         inter: {
             regular: INTER_REGULAR,
             bold: INTER_BOLD,
@@ -416,7 +416,7 @@ describe('Fitter edge cases', async () => {
 });
 
 describe('Fitter known-value math', async () => {
-    fonts = await FontManager.create({
+    fonts = await NodeFontManager.create({
         inter: {
             regular: INTER_REGULAR,
             bold: INTER_BOLD,

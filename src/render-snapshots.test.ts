@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Fitfull } from './fitfull.js';
+import { Fitfull } from './index.js';
 import type { Token } from './types.js';
 import { assertSnapshot } from './test-utils/snapshot.js';
 

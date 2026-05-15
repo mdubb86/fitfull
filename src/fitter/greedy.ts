@@ -1,4 +1,3 @@
-import { performance } from 'node:perf_hooks';
 import type { SearchContext, SearchResult } from './types.js';
 import { FIT_TOLERANCE, SEARCH_PRECISION } from './types.js';
 import { getArrangementMetrics } from '../measure/index.js';

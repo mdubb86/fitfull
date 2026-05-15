@@ -1,6 +1,6 @@
 import type { Font } from 'fontkit';
 import type { Token, TokenMetrics, LineMetrics, ArrangementMetrics } from '../types.js';
-import type { FontManager } from '../fonts/index.js';
+import type { FontProvider } from '../fonts/index.js';
 import { getFontMetrics } from '../fonts/index.js';
 
 /**
@@ -115,7 +115,7 @@ export function getTightBounds(font: Font, text: string, fontSize: number): {
  * Used to compute metrics on-demand for tokens created after the initial bulk measurement
  * (e.g. trimmed tokens produced by trimLineWhitespace).
  */
-export function measureSingleTokenMetrics(token: Token, fonts: FontManager): TokenMetrics {
+export function measureSingleTokenMetrics(token: Token, fonts: FontProvider): TokenMetrics {
     const font = fonts.getFont(token.font, token.weight);
     const metrics = getFontMetrics(font, token.size);
     const tightBounds = getTightBounds(font, token.text, token.size);
@@ -136,7 +136,7 @@ export function measureSingleTokenMetrics(token: Token, fonts: FontManager): Tok
  * Returns a parallel array of TokenMetrics (same order as input tokens),
  * with kerningDelta set for each consecutive pair sharing the same font/weight.
  */
-export function measureAllTokenMetrics(tokens: Token[], fonts: FontManager): TokenMetrics[] {
+export function measureAllTokenMetrics(tokens: Token[], fonts: FontProvider): TokenMetrics[] {
     const result: TokenMetrics[] = [];
 
     for (const token of tokens) {

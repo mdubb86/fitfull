@@ -1,6 +1,6 @@
-import { parseHTML } from 'linkedom';
 import type { Token } from './types.js';
 import { normalizeFamily } from './fonts/normalize.js';
+import type { ParseHtml } from './html-parser.js';
 
 
 /** Internal style state, inherited through the DOM tree */
@@ -271,7 +271,7 @@ function applyStyleBlocks(document: any): void {
 }
 
 /** Convert HTML string to Token array. All text must have explicit font-family and font-size styling. */
-export function htmlToTokens(html: string): Token[] {
+export function htmlToTokens(html: string, parseHtml: ParseHtml): Token[] {
     if (!html.trim()) return [];
 
     // 1. Parse DOM
@@ -279,7 +279,7 @@ export function htmlToTokens(html: string): Token[] {
     const wrapped = hasBody
         ? `<!DOCTYPE html><html>${html}</html>`
         : `<!DOCTYPE html><html><body>${html}</body></html>`;
-    const { document } = parseHTML(wrapped);
+    const document = parseHtml(wrapped);
 
     // 2. Inline CSS <style> block rules onto elements
     applyStyleBlocks(document);

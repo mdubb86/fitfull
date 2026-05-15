@@ -2,16 +2,16 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FontManager } from './index.js';
+import { NodeFontManager } from './node-font-manager.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FONTS_DIR = join(__dirname, '..', '..', 'fonts');
 const INTER_REGULAR = join(FONTS_DIR, 'Inter-Regular.ttf');
 const INTER_BOLD = join(FONTS_DIR, 'Inter-Bold.ttf');
 
-describe('FontManager layered resolution', () => {
+describe('NodeFontManager layered resolution', () => {
     test('explicit paths resolve without system scan', async () => {
-        const fm = await FontManager.create();
+        const fm = await NodeFontManager.create();
         const tokens = [
             { text: 'Hello', size: 12, font: 'inter', weight: 'regular' as const },
         ];
@@ -24,7 +24,7 @@ describe('FontManager layered resolution', () => {
         };
 
         try {
-            await fm.loadForTokens(tokens, { explicitPaths: [INTER_REGULAR], hint: 'api' });
+            await fm.loadForTokens(tokens, { fonts: [INTER_REGULAR], _hint: 'api' });
         } finally {
             console.error = originalError;
         }
@@ -39,24 +39,24 @@ describe('FontManager layered resolution', () => {
     });
 
     test('explicit bold path resolves correct weight', async () => {
-        const fm = await FontManager.create();
+        const fm = await NodeFontManager.create();
         const tokens = [
             { text: 'Bold', size: 12, font: 'inter', weight: 'bold' as const },
         ];
-        await fm.loadForTokens(tokens, { explicitPaths: [INTER_BOLD], hint: 'api' });
+        await fm.loadForTokens(tokens, { fonts: [INTER_BOLD], _hint: 'api' });
         const font = fm.getFont('inter', 'bold');
         assert.ok(font, 'inter/bold should be resolved from explicit path');
     });
 
     test('multiple explicit paths resolve multiple weights', async () => {
-        const fm = await FontManager.create();
+        const fm = await NodeFontManager.create();
         const tokens = [
             { text: 'Regular', size: 12, font: 'inter', weight: 'regular' as const },
             { text: 'Bold', size: 12, font: 'inter', weight: 'bold' as const },
         ];
         await fm.loadForTokens(tokens, {
-            explicitPaths: [INTER_REGULAR, INTER_BOLD],
-            hint: 'api',
+            fonts: [INTER_REGULAR, INTER_BOLD],
+            _hint: 'api',
         });
         assert.ok(fm.getFont('inter', 'regular'), 'regular resolved');
         assert.ok(fm.getFont('inter', 'bold'), 'bold resolved');
@@ -66,14 +66,14 @@ describe('FontManager layered resolution', () => {
         // We can verify the log line FORMAT by checking the conditional logic.
         // We use a font name that IS in explicit paths, so no scan occurs.
         // This test just verifies the explicit path path does NOT emit --font log.
-        const fm = await FontManager.create();
+        const fm = await NodeFontManager.create();
         const tokens = [{ text: 'Hi', size: 12, font: 'inter', weight: 'regular' as const }];
 
         const stderrLines: string[] = [];
         const orig = console.error;
         console.error = (...args: unknown[]) => { stderrLines.push(String(args[0])); };
         try {
-            await fm.loadForTokens(tokens, { explicitPaths: [INTER_REGULAR], hint: 'cli' });
+            await fm.loadForTokens(tokens, { fonts: [INTER_REGULAR], _hint: 'cli' });
         } finally {
             console.error = orig;
         }
@@ -83,19 +83,19 @@ describe('FontManager layered resolution', () => {
     });
 });
 
-describe('FontManager system resolution via injected provider', () => {
+describe('NodeFontManager system resolution via injected provider', () => {
     test('fuzzy filename match resolves family from system fonts', async () => {
-        const fm = await FontManager.createWithOptions({
+        const fm = await NodeFontManager.createWithOptions({
             getSystemFonts: async () => [INTER_REGULAR],
         });
         await fm.loadForTokens([
             { text: 'Hi', size: 12, font: 'inter', weight: 'regular' as const },
-        ], { hint: 'api' });
+        ], { _hint: 'api' });
         assert.ok(fm.getFont('inter', 'regular'));
     });
 
     test('emits scan log line with --font format for cli hint', async () => {
-        const fm = await FontManager.createWithOptions({
+        const fm = await NodeFontManager.createWithOptions({
             getSystemFonts: async () => [INTER_REGULAR],
         });
         const errors: string[] = [];
@@ -106,7 +106,7 @@ describe('FontManager system resolution via injected provider', () => {
         try {
             await fm.loadForTokens([
                 { text: 'Hi', size: 12, font: 'inter', weight: 'regular' as const },
-            ], { hint: 'cli' });
+            ], { _hint: 'cli' });
         } finally {
             console.error = orig;
         }
@@ -119,7 +119,7 @@ describe('FontManager system resolution via injected provider', () => {
     });
 
     test('emits scan log line with fonts: array format for api hint', async () => {
-        const fm = await FontManager.createWithOptions({
+        const fm = await NodeFontManager.createWithOptions({
             getSystemFonts: async () => [INTER_REGULAR],
         });
         const errors: string[] = [];
@@ -130,7 +130,7 @@ describe('FontManager system resolution via injected provider', () => {
         try {
             await fm.loadForTokens([
                 { text: 'Hi', size: 12, font: 'inter', weight: 'regular' as const },
-            ], { hint: 'api' });
+            ], { _hint: 'api' });
         } finally {
             console.error = orig;
         }
@@ -143,7 +143,7 @@ describe('FontManager system resolution via injected provider', () => {
     });
 
     test('explicit paths do not trigger scan log', async () => {
-        const fm = await FontManager.createWithOptions({
+        const fm = await NodeFontManager.createWithOptions({
             getSystemFonts: async () => {
                 throw new Error('should not be called');
             },
@@ -154,7 +154,7 @@ describe('FontManager system resolution via injected provider', () => {
         try {
             await fm.loadForTokens([
                 { text: 'Hi', size: 12, font: 'inter', weight: 'regular' as const },
-            ], { hint: 'cli', explicitPaths: [INTER_REGULAR] });
+            ], { _hint: 'cli', fonts: [INTER_REGULAR] });
         } finally {
             console.error = orig;
         }
@@ -164,7 +164,7 @@ describe('FontManager system resolution via injected provider', () => {
 
     test('concurrent loadForTokens calls share the system index build', async () => {
         let scanCount = 0;
-        const fm = await FontManager.createWithOptions({
+        const fm = await NodeFontManager.createWithOptions({
             getSystemFonts: async () => {
                 scanCount++;
                 return [INTER_REGULAR];

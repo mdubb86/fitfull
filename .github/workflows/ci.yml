@@ -81,3 +81,27 @@ jobs:
             --output /tmp/smoke-ttc.png
           test -s /tmp/smoke-ttc.png
           head -c 8 /tmp/smoke-ttc.png | od -c | grep -q "211   P   N   G"
+
+  # Real-browser end-to-end test: Playwright drives headless Chromium against
+  # the built dist/browser.js, exercising the html-input mode that depends on
+  # the native DOMParser and therefore cannot be covered by Node unit tests.
+  browser-e2e:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm test:e2e

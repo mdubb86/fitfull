@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Fitfull } from './fitfull.js';
+import { Fitfull } from './index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FONTS_DIR = join(__dirname, '..', 'fonts');
