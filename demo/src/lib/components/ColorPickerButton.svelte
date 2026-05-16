@@ -3,6 +3,17 @@
     import { normalizeProps, useMachine } from '@zag-js/svelte';
     import { persistedJSON } from '$lib/state/local-storage.svelte';
 
+    // DOM-level portal: moves the node to document.body without re-mounting a
+    // new Svelte component context (preserves Svelte 5's event delegation).
+    // Skeleton's <Portal> uses Svelte's mount() which spins up a fresh
+    // delegation root, which silently breaks Zag's pointer-event handlers.
+    function portalToBody(node: HTMLElement) {
+        document.body.appendChild(node);
+        return {
+            destroy() { node.parentElement?.removeChild(node); },
+        };
+    }
+
     type Props = {
         color: string;                       // hex, e.g. "#d4ff4a"
         onChange: (hex: string) => void;     // called on drag-end + on swatch click
@@ -26,8 +37,13 @@
     const id = $props.id();
     const service = useMachine(colorPicker.machine, () => ({
         id,
-        value: colorPicker.parse(color || '#000000'),
-        format: 'rgba' as const,
+        // `defaultValue` = uncontrolled (machine owns the value internally).
+        // Using `value:` would make it controlled, freezing the machine to the
+        // prop and ignoring area/slider clicks until we manually push updates back.
+        defaultValue: colorPicker.parse(color || '#000000'),
+        // HSB (= HSV) gives us the conventional hue slider + SV area. RGBA format
+        // has no 'hue' channel, so the hue slider renders blank under it.
+        format: 'hsba' as const,
         positioning: { placement: 'bottom-end' as const, gutter: 6 },
         closeOnSelect: false,
         onValueChangeEnd: (details: colorPicker.ValueChangeDetails) => {
@@ -35,6 +51,8 @@
         },
     }));
     const api = $derived(colorPicker.connect(service, normalizeProps));
+
+    const areaChannels = { xChannel: 'saturation' as const, yChannel: 'brightness' as const };
 </script>
 
 <div {...api.getRootProps()} class="cp-root">
@@ -42,12 +60,12 @@
         <span class="cp-swatch" {...api.getSwatchProps({ value: api.value })}></span>
     </button>
 
-    <div {...api.getPositionerProps()} class="cp-positioner">
+    <div use:portalToBody {...api.getPositionerProps()} class="cp-positioner">
         <div {...api.getContentProps()} class="cp-content">
             <!-- 2D SV area -->
-            <div {...api.getAreaProps()} class="cp-area">
-                <div {...api.getAreaBackgroundProps()} class="cp-area-bg"></div>
-                <div {...api.getAreaThumbProps()} class="cp-area-thumb"></div>
+            <div {...api.getAreaProps(areaChannels)} class="cp-area">
+                <div {...api.getAreaBackgroundProps(areaChannels)} class="cp-area-bg"></div>
+                <div {...api.getAreaThumbProps(areaChannels)} class="cp-area-thumb"></div>
             </div>
 
             <!-- Hue slider -->
@@ -114,7 +132,9 @@
         display: block;
     }
 
-    .cp-positioner { z-index: 50; }
+    /* Zag's positioner uses inline `z-index: var(--z-index)` which defaults to auto.
+       Setting the variable overrides it cleanly (no !important needed). */
+    .cp-positioner { --z-index: 1000; }
     .cp-content {
         background: light-dark(var(--color-surface-50), var(--color-surface-900));
         border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
@@ -132,23 +152,29 @@
         border-radius: 4px; overflow: hidden;
         touch-action: none;
     }
-    .cp-area-bg { position: absolute; inset: 0; }
+    /* Zag emits inline `position: relative` on cp-area-bg, which would collapse height
+       (the parent uses aspect-ratio — `height: 100%` resolves to 0 with indefinite parent).
+       Force absolute + inset:0 to fill the area. */
+    .cp-area-bg {
+        position: absolute !important;
+        inset: 0;
+        border-radius: 4px;
+    }
     .cp-area-thumb {
         width: 12px; height: 12px;
         border: 2px solid white;
         border-radius: 50%;
         box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
-        transform: translate(-50%, -50%);
+        pointer-events: none;
     }
 
     .cp-slider {
-        position: relative;
         height: 12px;
         border-radius: 999px;
-        touch-action: none;
     }
+    /* Same dimension-only fix — Zag paints the rainbow inline. */
     .cp-slider-track {
-        position: absolute; inset: 0;
+        width: 100%; height: 100%;
         border-radius: 999px;
     }
     .cp-slider-thumb {
@@ -156,7 +182,7 @@
         border: 2px solid white;
         border-radius: 50%;
         box-shadow: 0 0 0 1px rgba(0,0,0,0.5);
-        transform: translate(-50%, -50%);
+        pointer-events: none;
     }
 
     .cp-hex {
