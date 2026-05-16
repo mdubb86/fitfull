@@ -21,9 +21,9 @@
     </span>
     <div class="metrics">
         <span class="grp"><span class="lbl">box</span> <b>{box.width} × {box.height}</b></span>
+        <span class="grp"><span class="lbl">aspect</span> <b>{box.aspect.toFixed(2)} : 1</b></span>
         <span class="grp"><span class="lbl">text</span> <b>{textW} × {textH}</b></span>
         <span class="grp"><span class="lbl">occupancy</span> <b>{occupancy}%</b></span>
-        <span class="grp"><span class="lbl">aspect</span> <b>{box.aspect.toFixed(2)} : 1</b></span>
         <span class="grp"><span class="lbl">duration</span> <b>{duration}ms</b></span>
     </div>
     <div class="actions">
