@@ -1,5 +1,6 @@
 <script lang="ts">
     import AppBar from '$lib/components/AppBar.svelte';
+    import CanvasHeader from '$lib/components/CanvasHeader.svelte';
     import StatsBar from '$lib/components/StatsBar.svelte';
     import Canvas from '$lib/components/Canvas.svelte';
     import LeftSheet from '$lib/components/LeftSheet.svelte';
@@ -16,6 +17,7 @@
             <SheetPullTab side="left" onClick={() => ui.leftCollapsed = false} />
         {/if}
         <section class="center">
+            <CanvasHeader />
             <Canvas />
             <StatsBar />
         </section>
@@ -44,7 +46,7 @@
     }
     .center {
         display: grid;
-        grid-template-rows: 1fr auto;
+        grid-template-rows: auto 1fr auto;
         min-height: 0; min-width: 0;
     }
 </style>

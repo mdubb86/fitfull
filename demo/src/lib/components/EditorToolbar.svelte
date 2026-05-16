@@ -91,7 +91,7 @@
 
     <span class="sep"></span>
 
-    <div class="group">
+    <div class="group font-group">
         <button class="btn font" onclick={openFontPicker} title="Font family (Phase 5)">
             <span class="font-label">{snapshot.fontFamily ?? 'Font'}</span>
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
@@ -180,12 +180,15 @@
         background: light-dark(var(--color-surface-300), var(--color-surface-500));
     }
 
+    /* Font group absorbs all leftover horizontal space; the button stretches to fill it. */
+    .font-group { flex: 1; min-width: 0; }
     .btn.font {
-        max-width: 140px;
+        width: 100%;
+        justify-content: space-between;
     }
     .font-label {
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        max-width: 110px;
+        min-width: 0; flex: 1; text-align: left;
     }
 
     .size-group {

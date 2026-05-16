@@ -2,7 +2,6 @@
     import { box } from '$lib/state/box.svelte';
     import { fit } from '$lib/fitfull/fit.svelte';
 
-    const state = $derived(fit.state);
     const textW = $derived(fit.result?.textWidth ?? 0);
     const textH = $derived(fit.result?.textHeight ?? 0);
     const duration = $derived(fit.durationMs);
@@ -15,32 +14,18 @@
 </script>
 
 <div class="stats-bar">
-    <span class="state state-{state}">
-        <span class="pip"></span>
-        <span>{state}</span>
-    </span>
     <div class="metrics">
-        <span class="grp"><span class="lbl">box</span> <b>{box.width} × {box.height}</b></span>
-        <span class="grp"><span class="lbl">aspect</span> <b>{box.aspect.toFixed(2)} : 1</b></span>
-        <span class="grp"><span class="lbl">text</span> <b>{textW} × {textH}</b></span>
-        <span class="grp"><span class="lbl">occupancy</span> <b>{occupancy}%</b></span>
-        <span class="grp"><span class="lbl">duration</span> <b>{duration}ms</b></span>
-    </div>
-    <div class="actions">
-        <button class="btn-stats">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            .svg
-        </button>
-        <button class="btn-stats">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            .png
-        </button>
+        <span class="grp"><span class="lbl">box</span> <b><span class="num dim">{box.width}</span> × <span class="num dim">{box.height}</span></b></span>
+        <span class="grp"><span class="lbl">aspect</span> <b><span class="num ratio">{box.aspect.toFixed(2)}</span> : 1</b></span>
+        <span class="grp"><span class="lbl">text</span> <b><span class="num dim">{textW}</span> × <span class="num dim">{textH}</span></b></span>
+        <span class="grp"><span class="lbl">occupancy</span> <b><span class="num pct">{occupancy}</span>%</b></span>
+        <span class="grp"><span class="lbl">duration</span> <b><span class="num dur">{duration}</span>ms</b></span>
     </div>
 </div>
 
 <style>
     .stats-bar {
-        display: flex; align-items: center; gap: 14px;
+        display: flex; align-items: center;
         padding: 0 18px;
         height: 48px;
         background: light-dark(var(--color-surface-50), var(--color-surface-950));
@@ -51,40 +36,6 @@
         min-width: 0;
     }
 
-    /* State indicator — pinned left, never shrinks */
-    .state {
-        display: inline-flex; align-items: center; gap: 6px;
-        min-width: 70px;
-        flex-shrink: 0;
-        transition: color 120ms;
-    }
-    .state .pip {
-        width: 6px; height: 6px;
-        border-radius: 999px;
-        background: currentColor;
-        transition: background 120ms, box-shadow 120ms;
-    }
-    .state-fit { color: var(--color-brand); }
-    .state-fit .pip {
-        background: var(--color-brand);
-        box-shadow: 0 0 8px var(--color-brand);
-        animation: pulse 1.6s ease-in-out infinite;
-    }
-    .state-resizing { color: var(--color-warning-500); }
-    .state-resizing .pip {
-        background: var(--color-warning-500);
-        box-shadow: 0 0 8px var(--color-warning-500);
-        animation: pulse 0.6s ease-in-out infinite;
-    }
-    .state-fitting {
-        color: light-dark(var(--color-surface-800), var(--color-surface-200));
-    }
-    .state-fitting .pip {
-        animation: pulse 0.4s ease-in-out infinite;
-    }
-    @keyframes pulse { 50% { opacity: 0.4; } }
-
-    /* Metrics — fills middle, horizontally scrolls when squeezed, NEVER wraps */
     .metrics {
         flex: 1; min-width: 0;
         display: flex; align-items: center; justify-content: center;
@@ -108,30 +59,26 @@
     .grp b {
         color: light-dark(var(--color-surface-950), var(--color-surface-100));
         font-weight: 500;
+        /* Equal-width digits + fixed slots per metric so values changing length
+           don't push neighboring labels around. */
+        font-variant-numeric: tabular-nums;
+        display: inline-block;
+        text-align: left;
     }
+    /* Each number occupies a min-width slot — surrounding text (separators, units,
+       neighboring groups) doesn't move when digit count changes. */
+    .num {
+        display: inline-block;
+        text-align: left;
+    }
+    .num.dim   { min-width: 4ch; }  /* fits "9999" */
+    .num.ratio { min-width: 5ch; }  /* fits "99.99" — 99:1 aspect is already extreme */
+    .num.pct   { min-width: 3ch; }  /* fits "100" */
+    .num.dur   { min-width: 4ch; }  /* fits "9999" */
 
-    /* Actions — pinned right, never shrinks */
-    .actions {
-        display: flex; align-items: center; gap: 6px;
-        flex-shrink: 0;
-    }
-    .btn-stats {
-        font-family: 'Geist', sans-serif;
-        font-size: 12px; font-weight: 500;
-        color: light-dark(var(--color-surface-950), var(--color-surface-100));
-        background: light-dark(var(--color-surface-100), var(--color-surface-900));
-        border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
-        border-radius: 0.375rem;
-        padding: 5px 10px;
-        display: inline-flex; align-items: center; gap: 5px;
-        cursor: pointer;
-        transition: background 120ms, border-color 120ms;
-    }
-    .btn-stats:hover {
-        background: light-dark(var(--color-surface-200), var(--color-surface-800));
-        border-color: light-dark(var(--color-surface-300), var(--color-surface-700));
-    }
-    .btn-stats svg {
-        color: light-dark(var(--color-surface-600), var(--color-surface-400));
-    }
+    /* Width (first dim number) right-aligned so " × height" stays glued to it.
+       Height stays left-aligned so trailing slot space sits at group's right edge. */
+    .num.dim:first-child { text-align: right; }
+    /* Aspect ratio right-aligned so " : 1" stays glued. */
+    .num.ratio { text-align: right; }
 </style>
