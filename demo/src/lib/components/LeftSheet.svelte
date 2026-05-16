@@ -1,5 +1,6 @@
 <script lang="ts">
     import { ui } from '$lib/state/ui.svelte';
+    import WysiwygEditor from './WysiwygEditor.svelte';
 </script>
 
 <aside class="sheet sheet-left" class:collapsed={ui.leftCollapsed}>
@@ -20,9 +21,9 @@
         </div>
 
         {#if ui.activeTab === 'wysiwyg'}
-            <div class="placeholder">WYSIWYG editor lands in Phase 4.</div>
+            <WysiwygEditor />
         {:else}
-            <div class="placeholder">Tokens editor lands in Phase 4.</div>
+            <div class="placeholder">Tokens editor lands in Phase 4 (Dispatch 3).</div>
         {/if}
 
         <div class="section">
