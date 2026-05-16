@@ -68,19 +68,20 @@
 </button>
 
 <style>
+    /* Match the AppBar's .icon-btn (GitHub link): flat at rest, button on hover. */
     .theme-toggle {
         width: 30px; height: 30px;
         display: grid; place-items: center;
         border-radius: 0.375rem;
-        background: light-dark(var(--color-surface-100), var(--color-surface-900));
-        border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        background: transparent;
+        border: 1px solid transparent;
         color: light-dark(var(--color-surface-700), var(--color-surface-300));
         cursor: pointer;
         transition: background 120ms, border-color 120ms, color 120ms;
     }
     .theme-toggle:hover {
-        background: light-dark(var(--color-surface-200), var(--color-surface-800));
-        border-color: light-dark(var(--color-surface-300), var(--color-surface-700));
+        background: light-dark(var(--color-surface-100), var(--color-surface-900));
+        border-color: light-dark(var(--color-surface-200), var(--color-surface-800));
         color: light-dark(var(--color-surface-950), var(--color-surface-100));
     }
 </style>
