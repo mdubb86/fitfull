@@ -12,7 +12,7 @@
         box.wrap = w;
         fit.scheduleFit(0);
     }
-    function setAlign(a: 'left' | 'center' | 'right' | 'justify') {
+    function setAlign(a: 'left' | 'center' | 'right') {
         box.align = a;
         fit.scheduleFit(0);
     }
@@ -76,16 +76,14 @@
                         <span class="val">{box.align}</span>
                     </div>
                     <div class="aligns">
-                        {#each ['left', 'center', 'right', 'justify'] as const as a}
+                        {#each ['left', 'center', 'right'] as const as a}
                             <button class:active={box.align === a} onclick={() => setAlign(a)} title={a}>
                                 {#if a === 'left'}
                                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="2" y1="7" x2="9" y2="7"/><line x1="2" y1="10.5" x2="11" y2="10.5"/></svg>
                                 {:else if a === 'center'}
                                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="4" y1="7" x2="10" y2="7"/><line x1="3" y1="10.5" x2="11" y2="10.5"/></svg>
-                                {:else if a === 'right'}
-                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="5" y1="7" x2="12" y2="7"/><line x1="3" y1="10.5" x2="12" y2="10.5"/></svg>
                                 {:else}
-                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="2" y1="7" x2="12" y2="7"/><line x1="2" y1="10.5" x2="12" y2="10.5"/></svg>
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="5" y1="7" x2="12" y2="7"/><line x1="3" y1="10.5" x2="12" y2="10.5"/></svg>
                                 {/if}
                             </button>
                         {/each}
@@ -199,7 +197,7 @@
         border-radius: 0.375rem;
         padding: 2px;
     }
-    .aligns { display: grid; grid-template-columns: repeat(4, 1fr); }
+    .aligns { display: grid; grid-template-columns: repeat(3, 1fr); }
     .minigroup button, .aligns button {
         font-size: 11px; font-weight: 500;
         color: light-dark(var(--color-surface-600), var(--color-surface-300));

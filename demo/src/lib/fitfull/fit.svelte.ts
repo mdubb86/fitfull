@@ -21,10 +21,6 @@ class FitState {
         this.error = null;
         const t0 = performance.now();
         try {
-            // fitfull's Alignment is 'left' | 'center' | 'right'. The demo also
-            // exposes 'justify' in the UI; downgrade it to 'left' for now (Phase 4+
-            // will decide the final semantics for justify).
-            const align = box.align === 'justify' ? 'left' : box.align;
             const res = await this.ff.fit({
                 text: 'Hello world',
                 font: 'Geist',         // Phase 5 will register this from Google Fonts
@@ -32,7 +28,7 @@ class FitState {
                 width: box.width,
                 height: box.height,
                 wrap: box.wrap,
-                align,
+                align: box.align,
                 lineSpacing: box.lineSpacing,
             });
             this.result = res;

@@ -2,7 +2,7 @@
 // Mutations propagate reactively to all consumers via Svelte 5 runes.
 
 type WrapMode = 'balanced' | 'greedy';
-type Align = 'left' | 'center' | 'right' | 'justify';
+type Align = 'left' | 'center' | 'right';
 
 class BoxState {
     width = $state(460);
