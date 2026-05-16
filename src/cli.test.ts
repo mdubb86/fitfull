@@ -52,6 +52,10 @@ describe('CLI happy paths', () => {
         assert.strictEqual(json.lines.length, 1);
         assert.ok(json.width > 0);
         assert.ok(json.height > 0);
+        assert.ok(typeof json.textWidth === 'number' && json.textWidth > 0,
+            `CLI JSON output should include positive textWidth, got ${json.textWidth}`);
+        assert.ok(typeof json.textHeight === 'number' && json.textHeight > 0,
+            `CLI JSON output should include positive textHeight, got ${json.textHeight}`);
 
         unlinkSync(out);
     });

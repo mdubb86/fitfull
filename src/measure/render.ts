@@ -33,6 +33,13 @@ export function lineToSVG(line: MeasuredLine, options: {
     if (color) assertValidColor(color, 'color');
     if (background) assertValidColor(background, 'background');
 
+    // Validate any per-token colors that are set.
+    for (const mt of line.tokens) {
+        if (mt.token.color !== undefined) {
+            assertValidColor(mt.token.color, `token color (text: "${mt.token.text}")`);
+        }
+    }
+
     const bbox = line.tightBbox;
 
     // SVG dimensions - use exact values for tight fit
@@ -63,8 +70,9 @@ export function lineToSVG(line: MeasuredLine, options: {
     // Render each token path, translated to start at padding
     for (const measured of line.tokens) {
         const pathData = measured.path.toPathData(2);
+        const fill = measured.token.color ?? color;
         svg += `  <g transform="translate(${offsetX.toFixed(2)}, ${offsetY.toFixed(2)})">\n`;
-        svg += `    <path d="${pathData}" fill="${color}"/>\n`;
+        svg += `    <path d="${pathData}" fill="${fill}"/>\n`;
         svg += `  </g>\n`;
     }
 
@@ -89,6 +97,15 @@ export function layoutToSVG(
     if (options.color) assertValidColor(options.color, 'color');
     if (options.background) assertValidColor(options.background, 'background');
 
+    // Validate any per-token colors that are set.
+    for (const posLine of layout.lines) {
+        for (const mt of posLine.measured.tokens) {
+            if (mt.token.color !== undefined) {
+                assertValidColor(mt.token.color, `token color (text: "${mt.token.text}")`);
+            }
+        }
+    }
+
     if (layout.lines.length === 0) {
         return '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>';
     }
@@ -110,8 +127,9 @@ export function layoutToSVG(
         for (const measured of posLine.measured.tokens) {
             if (measured.path.commands.length === 0) continue;
             const pathData = measured.path.toPathData(2);
+            const fill = measured.token.color ?? color;
             svg += `  <g transform="translate(${lineOffsetX.toFixed(2)}, ${lineOffsetY.toFixed(2)})">\n`;
-            svg += `    <path d="${pathData}" fill="${color}"/>\n`;
+            svg += `    <path d="${pathData}" fill="${fill}"/>\n`;
             svg += `  </g>\n`;
         }
     }

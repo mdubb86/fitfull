@@ -13,6 +13,8 @@ export type Token = {
     size: number;
     font: string;   // font family name (must match a key in FontConfig)
     weight: 'regular' | 'bold' | 'italic' | 'bolditalic';
+    /** Optional per-token fill color. Overrides the top-level `color` option for this token. */
+    color?: string;
 };
 
 /** Measured token with positioning info */

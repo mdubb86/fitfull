@@ -41,6 +41,8 @@ function outputResult(result: FitResult, outputPath: string, elapsedMs: number) 
     console.log(JSON.stringify({
         width: Math.ceil(result.width),
         height: Math.ceil(result.height),
+        textWidth: result.textWidth,
+        textHeight: result.textHeight,
         minTextHeight: result.minTextHeight,
         maxTextHeight: result.maxTextHeight,
         lines: result.lines,

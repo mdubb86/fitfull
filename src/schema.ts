@@ -9,6 +9,7 @@ export const InputTokenSchema = z.object({
     text: z.string(),
     size: z.number().positive(),
     font: z.string(),  // "Inter", "Inter Bold", "Arial Light Italic", etc.
+    color: z.string().optional(),  // optional per-token fill color (validated at render time)
 });
 
 export type InputToken = z.infer<typeof InputTokenSchema>;
@@ -76,6 +77,7 @@ export function inputTokenToToken(
         size: input.size,
         font: fontKey,
         weight,
+        ...(input.color !== undefined ? { color: input.color } : {}),
     };
 }
 
