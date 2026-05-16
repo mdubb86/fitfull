@@ -2,6 +2,7 @@
     import { ui } from '$lib/state/ui.svelte';
     import WysiwygEditor from './WysiwygEditor.svelte';
     import TokensEditor from './TokensEditor.svelte';
+    import FontsInventory from './FontsInventory.svelte';
 </script>
 
 <aside class="sheet sheet-left" class:collapsed={ui.leftCollapsed}>
@@ -35,7 +36,7 @@
                 </span>
             </div>
             <div class="section-body">
-                <p class="placeholder-small">Fonts inventory lands in Phase 5.</p>
+                <FontsInventory />
             </div>
         </div>
     </div>
@@ -114,8 +115,4 @@
         background: var(--color-brand); opacity: 0.7;
     }
     .section-body { padding: 4px 14px 14px; }
-    .placeholder-small {
-        color: light-dark(var(--color-surface-500), var(--color-surface-500));
-        font-size: 11px; font-family: 'Geist Mono', monospace;
-    }
 </style>
