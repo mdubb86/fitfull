@@ -46,6 +46,10 @@ export interface FitResult {
     minTextHeight: number;
     maxTextHeight: number;
     lines: string[];
+    /** Tight bounding-box width of the rendered text (in box-coordinate pixels). */
+    textWidth: number;
+    /** Tight bounding-box height of the rendered text (in box-coordinate pixels). */
+    textHeight: number;
 }
 
 /**
@@ -74,6 +78,8 @@ export class FitfullCore {
                 minTextHeight: 0,
                 maxTextHeight: 0,
                 arrangements: 0,
+                textWidth: 0,
+                textHeight: 0,
             };
         }
 
@@ -117,6 +123,22 @@ export class FitfullCore {
             annotate: options.annotate,
         });
 
+        // Tight text bounding box across all positioned lines.
+        // PositionedLine has tight per-line bbox via x, y, width, height (see src/types.ts).
+        // Guarded against an empty lines array even though the early-return above
+        // catches the empty-tokens case — safety against fitter edge cases.
+        const positioned = result.layout.lines;
+        let textWidth = 0;
+        let textHeight = 0;
+        if (positioned.length > 0) {
+            const minX = Math.min(...positioned.map(l => l.x));
+            const maxX = Math.max(...positioned.map(l => l.x + l.width));
+            const minY = Math.min(...positioned.map(l => l.y));
+            const maxY = Math.max(...positioned.map(l => l.y + l.height));
+            textWidth = maxX - minX;
+            textHeight = maxY - minY;
+        }
+
         return {
             width: result.layout.width,
             height: result.layout.height,
@@ -125,6 +147,8 @@ export class FitfullCore {
             minTextHeight: result.minTextHeight,
             maxTextHeight: result.maxTextHeight,
             lines: result.layout.lines.map(line => line.text),
+            textWidth,
+            textHeight,
         };
     }
 

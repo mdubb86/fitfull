@@ -186,4 +186,34 @@ describe('Fitfull', () => {
             /Fit timed out/
         );
     });
+
+    test('FitResult exposes textWidth and textHeight (text mode)', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            text: 'Hello World',
+            font: INTER_REGULAR,
+            width: 400,
+            height: 100,
+        });
+        assert.ok(typeof result.textWidth === 'number', 'textWidth is a number');
+        assert.ok(typeof result.textHeight === 'number', 'textHeight is a number');
+        assert.ok(result.textWidth > 0, 'textWidth is positive');
+        assert.ok(result.textHeight > 0, 'textHeight is positive');
+        assert.ok(result.textWidth <= result.width,
+            `textWidth (${result.textWidth}) must fit inside box width (${result.width})`);
+        assert.ok(result.textHeight <= result.height,
+            `textHeight (${result.textHeight}) must fit inside box height (${result.height})`);
+    });
+
+    test('FitResult textWidth/textHeight are 0 for empty input', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            text: '',
+            font: INTER_REGULAR,
+            width: 400,
+            height: 100,
+        });
+        assert.strictEqual(result.textWidth, 0);
+        assert.strictEqual(result.textHeight, 0);
+    });
 });

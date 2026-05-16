@@ -18,6 +18,12 @@ test('browser fitfull() one-shot renders text mode', async () => {
     assert.match(result.svg, /<svg/);
     assert.match(result.svg, /viewBox="0 0/);
     assert.ok(result.width > 0 && result.height > 0);
+    assert.ok(typeof result.textWidth === 'number' && result.textWidth > 0,
+        'textWidth populated in browser path');
+    assert.ok(typeof result.textHeight === 'number' && result.textHeight > 0,
+        'textHeight populated in browser path');
+    assert.ok(result.textWidth <= result.width, 'textWidth fits inside box');
+    assert.ok(result.textHeight <= result.height, 'textHeight fits inside box');
 });
 
 test('browser Fitfull class: register once, fit many', async () => {
