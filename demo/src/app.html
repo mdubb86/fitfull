@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="fitfull-console" data-mode="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fitfull Playground</title>
+    <script>
+        // No-flash theme/mode: read localStorage BEFORE first paint.
+        // A $effect in +layout.svelte runs post-hydration — too late, would flash.
+        try {
+            const mode = localStorage.getItem('fitfull-mode');
+            if (mode === 'light' || mode === 'dark') {
+                document.documentElement.dataset.mode = mode;
+            }
+        } catch (e) { /* localStorage may be unavailable */ }
+    </script>
+    %sveltekit.head%
+</head>
+<body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+</body>
+</html>
