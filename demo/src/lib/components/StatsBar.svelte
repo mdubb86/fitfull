@@ -41,7 +41,8 @@
 <style>
     .stats-bar {
         display: flex; align-items: center; gap: 14px;
-        padding: 12px 18px;
+        padding: 0 18px;
+        height: 48px;
         background: light-dark(var(--color-surface-50), var(--color-surface-950));
         border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
         font-family: 'Geist Mono', monospace;

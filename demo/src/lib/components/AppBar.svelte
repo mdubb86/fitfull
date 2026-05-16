@@ -34,7 +34,7 @@
         align-items: center;
         padding: 0 16px;
         gap: 24px;
-        height: 56px;
+        height: 48px;
         background: light-dark(var(--color-surface-50), var(--color-surface-950));
         border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
     }

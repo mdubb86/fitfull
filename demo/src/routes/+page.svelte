@@ -29,7 +29,7 @@
 <style>
     .app {
         display: grid;
-        grid-template-rows: 56px 1fr;
+        grid-template-rows: 48px 1fr;
         height: 100vh;
         width: 100vw;
         overflow: hidden;

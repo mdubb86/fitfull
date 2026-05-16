@@ -115,7 +115,8 @@
     .sheet.collapsed { width: 0; border: none; }
     .sheet-head {
         display: flex; align-items: center; justify-content: space-between;
-        padding: 14px 16px;
+        padding: 0 16px;
+        height: 48px;
         border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
     }
     .sheet-title {
