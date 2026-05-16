@@ -105,6 +105,7 @@
     <div class="canvas" bind:this={canvasEl}>
         <div class="fit-card">
             <div class="fitbox"
+                 class:no-transition={isDragging}
                  style:width="{box.width * displayScale}px"
                  style:height="{box.height * displayScale}px">
                 {#if fit.result}
@@ -170,6 +171,12 @@
         overflow: hidden;
         transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1),
                     height 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* During drag, kill the CSS transition so the box tracks the cursor
+       in real-time instead of lagging by 240ms. Re-enabled on mouseup so
+       the snap-to-fit animation runs. */
+    .fitbox.no-transition {
+        transition: none;
     }
     .placeholder {
         color: light-dark(var(--color-surface-400), var(--color-surface-600));
