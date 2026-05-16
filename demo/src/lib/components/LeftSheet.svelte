@@ -43,7 +43,7 @@
 
 <style>
     .sheet {
-        width: 320px;
+        width: 420px;
         display: grid;
         grid-template-rows: auto minmax(0, 1fr);
         background: light-dark(var(--color-surface-50), var(--color-surface-950));

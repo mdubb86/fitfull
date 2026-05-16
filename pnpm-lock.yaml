@@ -84,9 +84,6 @@ importers:
       '@tiptap/extension-bold':
         specifier: ^3.23.4
         version: 3.23.4(@tiptap/core@3.23.4(@tiptap/pm@3.23.4))
-      '@tiptap/extension-bubble-menu':
-        specifier: ^3.23.4
-        version: 3.23.4(@tiptap/core@3.23.4(@tiptap/pm@3.23.4))(@tiptap/pm@3.23.4)
       '@tiptap/extension-document':
         specifier: ^3.23.4
         version: 3.23.4(@tiptap/core@3.23.4(@tiptap/pm@3.23.4))
@@ -108,6 +105,12 @@ importers:
       '@tiptap/pm':
         specifier: ^3.23.4
         version: 3.23.4
+      '@zag-js/color-picker':
+        specifier: 1.39.1
+        version: 1.39.1
+      '@zag-js/svelte':
+        specifier: 1.39.1
+        version: 1.39.1(svelte@5.55.7)
       codemirror-json-schema:
         specifier: ^0.8.1
         version: 0.8.1(@codemirror/language@6.12.3)(@codemirror/lint@6.9.6)(@codemirror/state@6.6.0)(@codemirror/view@6.43.0)(@lezer/common@1.5.2)
@@ -814,6 +817,12 @@ packages:
 
   '@zag-js/collection@1.39.1':
     resolution: {integrity: sha512-fyOyKmP7MRo0/U8mBmB7KgHRXHhXP27LCcasy3x+qTAQtuEfYG1EPhKuj07oBWlX/2qfcKYn2R3YopHcqFcCiA==}
+
+  '@zag-js/color-picker@1.39.1':
+    resolution: {integrity: sha512-LHJN1uQ1+vAkb4iXeKT2tf8QYbJMuXKx4lLa1IM2MtaM3PkFIvwZdtF4dnl6AW7TNAaT7UX2yWio6K4DF9/GbQ==}
+
+  '@zag-js/color-utils@1.39.1':
+    resolution: {integrity: sha512-TUWPDosvyA+n5aDVv2jGosNT5SxoNG/DePkLSg9Ks8UO4wSFbFGRB2ZvMufHwwKNV2+xgQe4+LSJ3EQWeseLrQ==}
 
   '@zag-js/combobox@1.39.1':
     resolution: {integrity: sha512-fmStpG+k4xrxCzqUX0ssnOMeoSietWm5ir3qmEZcagzNqNycAXMvOELAIeyXi87Kut6aDGhxLOV7o395HVXl/w==}
@@ -2449,6 +2458,21 @@ snapshots:
       '@zag-js/utils': 1.39.1
 
   '@zag-js/collection@1.39.1':
+    dependencies:
+      '@zag-js/utils': 1.39.1
+
+  '@zag-js/color-picker@1.39.1':
+    dependencies:
+      '@zag-js/anatomy': 1.39.1
+      '@zag-js/color-utils': 1.39.1
+      '@zag-js/core': 1.39.1
+      '@zag-js/dismissable': 1.39.1
+      '@zag-js/dom-query': 1.39.1
+      '@zag-js/popper': 1.39.1
+      '@zag-js/types': 1.39.1
+      '@zag-js/utils': 1.39.1
+
+  '@zag-js/color-utils@1.39.1':
     dependencies:
       '@zag-js/utils': 1.39.1
 

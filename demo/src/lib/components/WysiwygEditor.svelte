@@ -3,7 +3,7 @@
     import { Editor } from 'svelte-tiptap';
     import { editorExtensions } from '$lib/editor/tiptap-extensions';
     import { doc } from '$lib/state/document.svelte';
-    import SelectionBubble from './SelectionBubble.svelte';
+    import EditorToolbar from './EditorToolbar.svelte';
 
     let editorEl: HTMLDivElement;
     let editor: Editor | null = $state(null);
@@ -45,11 +45,11 @@
     });
 </script>
 
-<div class="wysiwyg" bind:this={editorEl}></div>
-
 {#if editor}
-    <SelectionBubble {editor} />
+    <EditorToolbar {editor} />
 {/if}
+
+<div class="wysiwyg" bind:this={editorEl}></div>
 
 <style>
     .wysiwyg {
