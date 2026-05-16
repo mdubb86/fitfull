@@ -5,14 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Fitfull Playground</title>
     <script>
-        // No-flash theme/mode: read localStorage BEFORE first paint.
+        // No-flash theme/mode: resolve and apply BEFORE first paint.
         // A $effect in +layout.svelte runs post-hydration — too late, would flash.
+        // localStorage stores the USER PREFERENCE: 'system' | 'light' | 'dark'.
+        // Default (no stored value) is 'system' — follows OS preference.
         try {
-            const mode = localStorage.getItem('fitfull-mode');
-            if (mode === 'light' || mode === 'dark') {
-                document.documentElement.dataset.mode = mode;
+            const pref = localStorage.getItem('fitfull-mode');
+            let mode;
+            if (pref === 'light' || pref === 'dark') {
+                mode = pref;
+            } else {
+                // 'system' or null → use OS preference
+                mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
-        } catch (e) { /* localStorage may be unavailable */ }
+            document.documentElement.dataset.mode = mode;
+        } catch (e) { /* localStorage unavailable */ }
     </script>
     %sveltekit.head%
 </head>
