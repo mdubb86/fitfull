@@ -1,15 +1,14 @@
 <script lang="ts">
     import AppBar from '$lib/components/AppBar.svelte';
     import StatsBar from '$lib/components/StatsBar.svelte';
+    import Canvas from '$lib/components/Canvas.svelte';
 </script>
 
 <div class="app">
     <AppBar />
     <main>
         <StatsBar />
-        <section class="canvas-placeholder">
-            <p>Canvas + drag lands in Tasks 11–12.</p>
-        </section>
+        <Canvas />
     </main>
 </div>
 
@@ -27,13 +26,5 @@
         display: grid;
         grid-template-rows: auto 1fr;
         min-height: 0;
-    }
-    .canvas-placeholder {
-        display: grid;
-        place-items: center;
-        color: light-dark(var(--color-surface-500), var(--color-surface-500));
-        font-family: 'Geist', sans-serif;
-        font-size: 14px;
-        background: light-dark(var(--color-surface-100), var(--color-surface-950));
     }
 </style>
