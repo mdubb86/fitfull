@@ -69,21 +69,24 @@ function textNodeToToken(node: PmNode): Token {
     const size: number =
         typeof tsAttrs.size === 'number' ? tsAttrs.size : DEFAULT_SIZE;
 
-    return {
+    const token: Token = {
         text: node.text!,
         font: typeof tsAttrs.fontFamily === 'string' ? tsAttrs.fontFamily : DEFAULT_FONT,
         weight,
         size,
     };
+    // Per-token color (fitfull v1.5.0+). Only attach when textStyle carried one;
+    // don't synthesize a default — absence means "use the document color".
+    if (typeof tsAttrs.color === 'string' && tsAttrs.color) {
+        token.color = tsAttrs.color;
+    }
+    return token;
 }
 
 /**
  * Inverse of pmJsonToTokens. Rebuilds a ProseMirror document from a tokens array.
- * Splits on `\n` tokens to produce separate paragraphs.
- * `color` attribute (not in Token but possible in textStyle) is preserved by being
- * unset on the round-trip — fitfull tokens don't carry color today, so this is one-way
- * lossy for color. Acceptable for v1: color shows in the WYSIWYG (live edits) but
- * doesn't survive a Tokens-tab edit. Documented.
+ * Splits on `\n` tokens to produce separate paragraphs. Per-token color (fitfull v1.5.0+)
+ * round-trips through the `textStyle` mark's `color` attribute.
  */
 export function tokensToPmJson(tokens: Token[]): PmNode {
     const paragraphs: PmNode[] = [{ type: 'paragraph', content: [] }];
@@ -105,9 +108,10 @@ function tokenToTextNode(tok: Token): PmNode {
     if (tok.weight === 'bold' || tok.weight === 'bolditalic') marks.push({ type: 'bold' });
     if (tok.weight === 'italic' || tok.weight === 'bolditalic') marks.push({ type: 'italic' });
 
-    const tsAttrs: { fontFamily?: string; size?: number } = {};
+    const tsAttrs: { fontFamily?: string; size?: number; color?: string } = {};
     if (tok.font !== DEFAULT_FONT) tsAttrs.fontFamily = tok.font;
     if (typeof tok.size === 'number' && tok.size !== DEFAULT_SIZE) tsAttrs.size = tok.size;
+    if (typeof tok.color === 'string' && tok.color) tsAttrs.color = tok.color;
     if (Object.keys(tsAttrs).length > 0) {
         marks.push({ type: 'textStyle', attrs: tsAttrs });
     }

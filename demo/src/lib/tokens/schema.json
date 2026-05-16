@@ -17,6 +17,10 @@
                 "minimum": 0.1,
                 "maximum": 10,
                 "description": "Relative size multiplier (1 = base, 2 = double-size emphasis, etc.)"
+            },
+            "color": {
+                "type": "string",
+                "description": "Per-token fill color (CSS color: hex, rgb(), hsl(), or named). Overrides the document color."
             }
         },
         "required": ["text", "font", "weight"],

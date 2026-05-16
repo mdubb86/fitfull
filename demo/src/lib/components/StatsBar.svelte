@@ -44,7 +44,7 @@
         padding: 0 18px;
         height: 48px;
         background: light-dark(var(--color-surface-50), var(--color-surface-950));
-        border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        border-top: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
         font-family: 'Geist Mono', monospace;
         font-size: 11px;
         color: light-dark(var(--color-surface-500), var(--color-surface-500));

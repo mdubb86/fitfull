@@ -16,8 +16,8 @@
             <SheetPullTab side="left" onClick={() => ui.leftCollapsed = false} />
         {/if}
         <section class="center">
-            <StatsBar />
             <Canvas />
+            <StatsBar />
         </section>
         <RightSheet />
         {#if ui.rightCollapsed}
@@ -44,7 +44,7 @@
     }
     .center {
         display: grid;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: 1fr auto;
         min-height: 0; min-width: 0;
     }
 </style>
