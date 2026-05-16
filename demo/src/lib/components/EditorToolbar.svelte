@@ -165,7 +165,7 @@
         display: inline-flex; align-items: center; justify-content: center; gap: 4px;
         cursor: pointer;
     }
-    .btn:hover {
+    .btn:not(.on):hover {
         background: light-dark(
             color-mix(in oklab, black 8%, transparent),
             color-mix(in oklab, white 10%, transparent)
@@ -173,7 +173,11 @@
         color: light-dark(var(--color-surface-950), white);
     }
     .btn.on {
-        color: var(--color-primary-500);
+        background: light-dark(var(--color-surface-200), var(--color-surface-700));
+        color: light-dark(var(--color-surface-950), white);
+    }
+    .btn.on:hover {
+        background: light-dark(var(--color-surface-300), var(--color-surface-500));
     }
 
     .btn.font {
