@@ -1,9 +1,10 @@
 import { Fitfull, type FitResult } from 'fitfull/browser';
 import { box } from '$lib/state/box.svelte';
+import { doc } from '$lib/state/document.svelte';
 
 /**
  * Reactive wrapper around fitfull's fit() pipeline. Singleton.
- * Phase 2: input is a hardcoded text + 'Geist' font. Phase 4 swaps to live document tokens.
+ * Phase 4: input is the live `doc.tokens` (driven by WYSIWYG or Tokens editor).
  * Phase 5 registers fonts so the fit actually succeeds.
  */
 class FitState {
@@ -22,9 +23,7 @@ class FitState {
         const t0 = performance.now();
         try {
             const res = await this.ff.fit({
-                text: 'Hello world',
-                font: 'Geist',         // Phase 5 will register this from Google Fonts
-                fontWeight: 'regular',
+                tokens: doc.tokens,
                 width: box.width,
                 height: box.height,
                 wrap: box.wrap,
@@ -37,7 +36,7 @@ class FitState {
         } catch (e) {
             this.error = (e as Error).message;
             this.state = 'fit';  // not 'error' — leave the previous result visible
-            // (When fonts aren't registered yet — Phase 2 — this catches "Font not registered" silently.)
+            // (When fonts aren't registered yet — Phases 1-4 — this catches "Font not registered" silently.)
         }
     }
 
@@ -57,3 +56,12 @@ class FitState {
 }
 
 export const fit = new FitState();
+
+// Refit on token changes (doc.tokens flows from WYSIWYG or Tokens editor).
+// Module-scope effect — needs $effect.root so it isn't tied to a component.
+$effect.root(() => {
+    $effect(() => {
+        doc.tokens;  // tracked dep
+        fit.scheduleFit();
+    });
+});

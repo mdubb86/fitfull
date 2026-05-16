@@ -1,6 +1,7 @@
 <script lang="ts">
     import { ui } from '$lib/state/ui.svelte';
     import WysiwygEditor from './WysiwygEditor.svelte';
+    import TokensEditor from './TokensEditor.svelte';
 </script>
 
 <aside class="sheet sheet-left" class:collapsed={ui.leftCollapsed}>
@@ -23,7 +24,7 @@
         {#if ui.activeTab === 'wysiwyg'}
             <WysiwygEditor />
         {:else}
-            <div class="placeholder">Tokens editor lands in Phase 4 (Dispatch 3).</div>
+            <TokensEditor />
         {/if}
 
         <div class="section">
@@ -101,12 +102,6 @@
     .seg button .mono {
         font-family: 'Geist Mono', monospace; font-size: 10px;
         color: light-dark(var(--color-surface-400), var(--color-surface-500));
-    }
-    .placeholder {
-        padding: 24px 14px;
-        color: light-dark(var(--color-surface-500), var(--color-surface-500));
-        font-size: 12px; font-family: 'Geist Mono', monospace;
-        border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
     }
     .section { border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800)); }
     .section-head { display: flex; align-items: center; padding: 12px 14px; }
