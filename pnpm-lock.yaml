@@ -111,6 +111,9 @@ importers:
       '@zag-js/dialog':
         specifier: 1.39.1
         version: 1.39.1
+      '@zag-js/menu':
+        specifier: 1.39.1
+        version: 1.39.1
       '@zag-js/svelte':
         specifier: 1.39.1
         version: 1.39.1(svelte@5.55.7)

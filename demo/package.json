@@ -29,6 +29,7 @@
         "@tiptap/pm": "^3.23.4",
         "@zag-js/color-picker": "1.39.1",
         "@zag-js/dialog": "1.39.1",
+        "@zag-js/menu": "1.39.1",
         "@zag-js/svelte": "1.39.1",
         "codemirror-json-schema": "^0.8.1",
         "fitfull": "workspace:*",

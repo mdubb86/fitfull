@@ -7,6 +7,7 @@ import { fetchFontBytes } from '$lib/fonts/google-fonts';
 import { injectFontFace, removeFontFace } from '$lib/fonts/font-face';
 import { fit } from '$lib/fitfull/fit.svelte';
 import { doc } from '$lib/state/document.svelte';
+import { getCatalog, type FontFamily } from '$lib/fonts/catalog';
 import type { FontWeight } from 'fitfull';
 
 // Bundled default font (Geist) — already exposed as @font-face by the
@@ -17,18 +18,14 @@ import geistBoldUrl from '@fontsource/geist/files/geist-latin-700-normal.woff2?u
 
 export type LoadStatus = 'loading' | 'loaded' | 'error';
 
-export interface WeightEntry {
-    weight: FontWeight;
-    status: LoadStatus;
-    error?: string;
-    /** Number of tokens in the current doc that reference this (family, weight). */
-    runs: number;
-}
-
 interface InternalEntry {
     family: string;
     weights: Map<FontWeight, { status: LoadStatus; error?: string }>;
 }
+
+// Catalog is loaded eagerly from the virtual module (sync). Build a name → entry
+// map once at module init so loadFamily lookups are O(1).
+const catalogByName: Map<string, FontFamily> = new Map(getCatalog().map((f) => [f.family, f]));
 
 class FontRegistry {
     // Keep entries in a Map so iteration order is insertion order = display order.
@@ -42,31 +39,59 @@ class FontRegistry {
         return [...this.entries.keys()];
     }
 
-    /** Weight entries for a family, including run counts from doc.tokens. */
-    weightStatuses(family: string): WeightEntry[] {
+    /**
+     * Aggregate load status for a family across all its weights.
+     * - 'unknown' if family not in registry
+     * - 'loading' if ANY weight is still loading
+     * - 'error' if ALL weights have errored
+     * - 'loaded' otherwise (at least one weight loaded)
+     */
+    familyStatus(family: string): 'loading' | 'loaded' | 'error' | 'unknown' {
         const entry = this.entries.get(family);
-        if (!entry) return [];
-        // Compute runs per weight from doc.tokens — reactive read, recomputes
-        // whenever the doc changes.
-        const runsByWeight = new Map<FontWeight, number>();
-        for (const tok of doc.tokens) {
-            if (tok.font === family) {
-                runsByWeight.set(tok.weight, (runsByWeight.get(tok.weight) ?? 0) + 1);
-            }
+        if (!entry || entry.weights.size === 0) return 'unknown';
+        let allError = true;
+        for (const { status } of entry.weights.values()) {
+            if (status === 'loading') return 'loading';
+            if (status !== 'error') allError = false;
         }
-        const out: WeightEntry[] = [];
-        for (const [weight, st] of entry.weights) {
-            out.push({
-                weight,
-                status: st.status,
-                error: st.error,
-                runs: runsByWeight.get(weight) ?? 0,
-            });
-        }
-        return out;
+        return allError ? 'error' : 'loaded';
     }
 
-    /** Add (or queue load for) a family/weight. Idempotent. */
+    /** Whether a given style is loaded for a family. Used to enable/disable B & I. */
+    supportsStyle(family: string, style: 'bold' | 'italic' | 'bolditalic'): boolean {
+        const entry = this.entries.get(family);
+        if (!entry) return false;
+        const st = entry.weights.get(style);
+        return st?.status === 'loaded';
+    }
+
+    /** Number of doc tokens currently referencing this family (any weight). Reactive read via doc.tokens. */
+    runs(family: string): number {
+        let count = 0;
+        for (const tok of doc.tokens) {
+            if (tok.font === family) count++;
+        }
+        return count;
+    }
+
+    /**
+     * Load all available styles (regular/bold/italic/bolditalic) for a family
+     * from Google Fonts in parallel. Looks up which weights exist via getCatalog().
+     * Idempotent — already-loaded weights are skipped. Resolves when all attempts settle.
+     * No-op if the family isn't in the catalog (e.g. bundled fonts like Geist).
+     */
+    async loadFamily(family: string): Promise<void> {
+        const entry = catalogByName.get(family);
+        if (!entry) return;
+        const targets: FontWeight[] = [];
+        if (entry.variants.includes(400)) targets.push('regular');
+        if (entry.variants.includes(700)) targets.push('bold');
+        if (entry.italicVariants?.includes(400)) targets.push('italic');
+        if (entry.italicVariants?.includes(700)) targets.push('bolditalic');
+        await Promise.all(targets.map((w) => this.addFont(family, w)));
+    }
+
+    /** Add (or queue load for) a family/weight. Idempotent. Internal — callers use loadFamily. */
     async addFont(family: string, weight: FontWeight): Promise<void> {
         let entry = this.entries.get(family);
         if (!entry) {
@@ -98,6 +123,7 @@ class FontRegistry {
      * Load the bundled default font (Geist 400 + 700) and register with fitfull
      * so the canvas renders text on first load. Skips injectFontFace because
      * @fontsource/geist already provides @font-face via app.css imports.
+     * Doesn't go through loadFamily because Geist isn't in the Google catalog.
      */
     async loadDefault(): Promise<void> {
         const family = 'Geist';
@@ -133,14 +159,13 @@ class FontRegistry {
         fit.scheduleFit();
     }
 
-    /** Remove all weights of a family. No-op if any weight is in-use (runs > 0). */
+    /** Remove all weights of a family. No-op if any token still references it. */
     removeFont(family: string): { ok: boolean; reason?: string } {
-        const statuses = this.weightStatuses(family);
-        const inUse = statuses.filter((w) => w.runs > 0);
-        if (inUse.length > 0) {
+        const inUse = this.runs(family);
+        if (inUse > 0) {
             return {
                 ok: false,
-                reason: `In use by ${inUse.reduce((sum, w) => sum + w.runs, 0)} run(s); change those tokens first.`,
+                reason: `In use by ${inUse} run(s); change those tokens first.`,
             };
         }
         const entry = this.entries.get(family);

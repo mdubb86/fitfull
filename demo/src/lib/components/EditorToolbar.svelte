@@ -1,7 +1,11 @@
 <script lang="ts">
     import type { Editor } from 'svelte-tiptap';
+    import * as menu from '@zag-js/menu';
+    import { normalizeProps, useMachine } from '@zag-js/svelte';
     import ColorPickerButton from './ColorPickerButton.svelte';
     import FontPickerModal from './FontPickerModal.svelte';
+    import { fonts } from '$lib/state/fonts.svelte';
+    import { portalToBody } from '$lib/actions/portal';
 
     let { editor }: { editor: Editor } = $props();
 
@@ -35,6 +39,12 @@
             editor.off('transaction', refreshSnapshot);
         };
     });
+
+    // The active font on the current selection — falls back to Geist (the
+    // bundled default) when no fontFamily mark is set on the cursor.
+    const activeFamily = $derived(snapshot.fontFamily ?? 'Geist');
+    const supportsBold = $derived(fonts.supportsStyle(activeFamily, 'bold'));
+    const supportsItalic = $derived(fonts.supportsStyle(activeFamily, 'italic'));
 
     function toggleBold() {
         editor.chain().focus().toggleBold().run();
@@ -80,26 +90,52 @@
         else if (e.key === 'ArrowDown') { e.preventDefault(); stepDown(); }
     }
 
-    function openFontPicker() {
-        pickerOpen = true;
-    }
-
     function applyFont(family: string) {
         editor.chain().focus().setMark('textStyle', { fontFamily: family }).run();
     }
+
+    // Sentinel value for the "+ Add font…" menu item — anything not in fonts.families().
+    const ADD_FONT_ITEM = '__add_font__';
+
+    // Zag menu — dropdown of registered families plus the "+ Add font…" sentinel.
+    const menuId = $props.id();
+    const menuService = useMachine(menu.machine, () => ({
+        id: menuId,
+        positioning: { placement: 'bottom-start' as const, gutter: 4 },
+        onSelect: (details: { value: string }) => {
+            if (details.value === ADD_FONT_ITEM) {
+                pickerOpen = true;
+            } else {
+                applyFont(details.value);
+            }
+        },
+    }));
+    const menuApi = $derived(menu.connect(menuService, normalizeProps));
 </script>
 
 <div class="toolbar">
     <div class="group">
-        <button class="btn" class:on={snapshot.bold} onclick={toggleBold} title="Bold"><b>B</b></button>
-        <button class="btn" class:on={snapshot.italic} onclick={toggleItalic} title="Italic"><i>I</i></button>
+        <button
+            class="btn"
+            class:on={snapshot.bold}
+            disabled={!supportsBold}
+            onclick={toggleBold}
+            title={supportsBold ? 'Bold' : `${activeFamily} doesn't have a bold variant`}
+        ><b>B</b></button>
+        <button
+            class="btn"
+            class:on={snapshot.italic}
+            disabled={!supportsItalic}
+            onclick={toggleItalic}
+            title={supportsItalic ? 'Italic' : `${activeFamily} doesn't have an italic variant`}
+        ><i>I</i></button>
     </div>
 
     <span class="sep"></span>
 
     <div class="group font-group">
-        <button class="btn font" onclick={openFontPicker} title="Font family">
-            <span class="font-label">{snapshot.fontFamily ?? 'Font'}</span>
+        <button {...menuApi.getTriggerProps()} class="btn font" title="Font family">
+            <span class="font-label">{activeFamily}</span>
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
     </div>
@@ -141,6 +177,29 @@
 
     <div class="group">
         <button class="btn" onclick={clearFormatting} title="Clear formatting">✕</button>
+    </div>
+</div>
+
+<div use:portalToBody {...menuApi.getPositionerProps()} class="font-menu-positioner">
+    <div {...menuApi.getContentProps()} class="font-menu-content">
+        {#each fonts.families() as family (family)}
+            <button
+                {...menuApi.getItemProps({ value: family })}
+                class="font-menu-item"
+                class:active={family === activeFamily}
+            >
+                <span class="check">{family === activeFamily ? '✓' : ''}</span>
+                <span class="name" style="font-family: '{family}', sans-serif;">{family}</span>
+            </button>
+        {/each}
+        <div class="font-menu-sep"></div>
+        <button
+            {...menuApi.getItemProps({ value: ADD_FONT_ITEM })}
+            class="font-menu-item add"
+        >
+            <span class="check"></span>
+            <span class="name">+ Add font…</span>
+        </button>
     </div>
 </div>
 
@@ -187,6 +246,11 @@
     .btn.on:hover {
         background: light-dark(var(--color-surface-300), var(--color-surface-500));
     }
+    .btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+    }
+    .btn:disabled:hover { background: transparent; }
 
     /* Font group absorbs all leftover horizontal space; the button stretches to fill it. */
     .font-group { flex: 1; min-width: 0; }
@@ -197,6 +261,57 @@
     .font-label {
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         min-width: 0; flex: 1; text-align: left;
+    }
+
+    /* Zag emits inline z-index: var(--z-index); raise above the WYSIWYG layer. */
+    .font-menu-positioner { --z-index: 1000; }
+    .font-menu-content {
+        background: light-dark(var(--color-surface-50), var(--color-surface-900));
+        border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        color: light-dark(var(--color-surface-950), var(--color-surface-50));
+        border-radius: 6px;
+        padding: 4px;
+        min-width: 180px;
+        display: flex; flex-direction: column;
+        box-shadow: 0 10px 30px -8px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.25);
+        outline: none;
+    }
+    .font-menu-item {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 8px;
+        background: transparent;
+        border: none; border-radius: 4px;
+        text-align: left;
+        cursor: pointer;
+        color: light-dark(var(--color-surface-800), var(--color-surface-100));
+        font-size: 13px;
+    }
+    .font-menu-item[data-highlighted],
+    .font-menu-item:hover {
+        background: light-dark(var(--color-surface-200), color-mix(in oklab, white 10%, transparent));
+        color: light-dark(var(--color-surface-950), white);
+        outline: none;
+    }
+    .font-menu-item .check {
+        display: inline-block;
+        width: 14px;
+        color: var(--color-brand);
+        font-size: 12px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .font-menu-item .name {
+        flex: 1;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .font-menu-item.add .name {
+        color: light-dark(var(--color-surface-600), var(--color-surface-400));
+        font-style: italic;
+    }
+    .font-menu-sep {
+        height: 1px;
+        margin: 4px 4px;
+        background: light-dark(var(--color-surface-200), color-mix(in oklab, white 10%, transparent));
     }
 
     .size-group {
