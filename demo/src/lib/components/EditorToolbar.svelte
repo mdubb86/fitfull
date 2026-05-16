@@ -1,8 +1,11 @@
 <script lang="ts">
     import type { Editor } from 'svelte-tiptap';
     import ColorPickerButton from './ColorPickerButton.svelte';
+    import FontPickerModal from './FontPickerModal.svelte';
 
     let { editor }: { editor: Editor } = $props();
+
+    let pickerOpen = $state(false);
 
     // Snapshot of active marks/attributes, refreshed on every transaction.
     let snapshot = $state({
@@ -77,9 +80,12 @@
         else if (e.key === 'ArrowDown') { e.preventDefault(); stepDown(); }
     }
 
-    // Font stub — Phase 5.
     function openFontPicker() {
-        console.log('[Phase 5] font picker not wired yet');
+        pickerOpen = true;
+    }
+
+    function applyFont(family: string) {
+        editor.chain().focus().setMark('textStyle', { fontFamily: family }).run();
     }
 </script>
 
@@ -92,7 +98,7 @@
     <span class="sep"></span>
 
     <div class="group font-group">
-        <button class="btn font" onclick={openFontPicker} title="Font family (Phase 5)">
+        <button class="btn font" onclick={openFontPicker} title="Font family">
             <span class="font-label">{snapshot.fontFamily ?? 'Font'}</span>
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
@@ -137,6 +143,8 @@
         <button class="btn" onclick={clearFormatting} title="Clear formatting">✕</button>
     </div>
 </div>
+
+<FontPickerModal bind:open={pickerOpen} onSelected={applyFont} />
 
 <style>
     .toolbar {

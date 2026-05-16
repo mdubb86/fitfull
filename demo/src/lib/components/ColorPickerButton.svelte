@@ -2,17 +2,7 @@
     import * as colorPicker from '@zag-js/color-picker';
     import { normalizeProps, useMachine } from '@zag-js/svelte';
     import { persistedJSON } from '$lib/state/local-storage.svelte';
-
-    // DOM-level portal: moves the node to document.body without re-mounting a
-    // new Svelte component context (preserves Svelte 5's event delegation).
-    // Skeleton's <Portal> uses Svelte's mount() which spins up a fresh
-    // delegation root, which silently breaks Zag's pointer-event handlers.
-    function portalToBody(node: HTMLElement) {
-        document.body.appendChild(node);
-        return {
-            destroy() { node.parentElement?.removeChild(node); },
-        };
-    }
+    import { portalToBody } from '$lib/actions/portal';
 
     type Props = {
         color: string;                       // hex, e.g. "#d4ff4a"

@@ -1,9 +1,11 @@
 <script lang="ts">
     import { fonts } from '$lib/state/fonts.svelte';
+    import FontPickerModal from './FontPickerModal.svelte';
 
-    // For now the Add button just logs — Dispatch 3 wires the modal.
+    let pickerOpen = $state(false);
+
     function openPicker() {
-        console.log('[Phase 5 D3] picker modal not wired yet');
+        pickerOpen = true;
     }
 </script>
 
@@ -38,6 +40,8 @@
     {/if}
     <button class="add-btn" onclick={openPicker}>+ Add font from Google Fonts</button>
 </div>
+
+<FontPickerModal bind:open={pickerOpen} />
 
 <style>
     .fonts-inventory { display: flex; flex-direction: column; gap: 8px; }
