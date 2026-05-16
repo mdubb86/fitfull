@@ -1,7 +1,7 @@
 node_modules/
 dist/
 dist-test/
-fitfull
+/fitfull
 .pnpm-store/
 .idea/
 *.iml

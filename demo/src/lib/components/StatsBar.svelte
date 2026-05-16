@@ -1,12 +1,17 @@
 <script lang="ts">
     import { box } from '$lib/state/box.svelte';
+    import { fit } from '$lib/fitfull/fit.svelte';
 
-    // Phase 2 hardcoded values — Task 15 replaces with $derived from real fit result.
-    const state: 'fit' | 'resizing' | 'fitting' = 'fit';
-    const textW = 321;
-    const textH = 128;
-    const occupancy = 64;
-    const duration = 12;
+    const state = $derived(fit.state);
+    const textW = $derived(fit.result?.textWidth ?? 0);
+    const textH = $derived(fit.result?.textHeight ?? 0);
+    const duration = $derived(fit.durationMs);
+    const occupancy = $derived.by(() => {
+        if (!fit.result) return 0;
+        const area = box.width * box.height;
+        if (area === 0) return 0;
+        return Math.round((fit.result.textWidth * fit.result.textHeight) / area * 100);
+    });
 </script>
 
 <div class="stats-bar">

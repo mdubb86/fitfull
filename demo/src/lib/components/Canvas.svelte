@@ -1,5 +1,6 @@
 <script lang="ts">
     import { box } from '$lib/state/box.svelte';
+    import { fit } from '$lib/fitfull/fit.svelte';
 
     let canvasEl: HTMLDivElement;
 
@@ -47,6 +48,7 @@
         target.classList.add('active');
 
         function move(ev: MouseEvent) {
+            if (fit.state !== 'resizing') fit.state = 'resizing';
             // dx/dy in LOGICAL pixels — divided by startScale (NOT live scale,
             // which changes during drag and would compound into runaway).
             const dx = (ev.clientX - sx) / startScale;
@@ -70,12 +72,33 @@
             window.removeEventListener('mouseup', up);
             isDragging = false;
             recomputeScale();  // snap — lifts the dragStartScale cap, animates via CSS transition
+            fit.scheduleFit(0);  // commit on release, no debounce
         }
         window.addEventListener('mousemove', move);
         window.addEventListener('mouseup', up);
     }
 
     const handleDirs = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
+
+    $effect(() => {
+        // Re-fit whenever box dims change via input (typing), OR on initial mount.
+        // Drag-triggered fits go through scheduleFit() in the drag handler.
+        box.width; box.height; box.wrap; box.align; box.lineSpacing;
+        if (!isDragging) fit.scheduleFit(150);
+    });
+
+    /**
+     * fitfull returns SVG at LOGICAL dimensions (e.g., 460×140 attrs).
+     * We display the box at VISUAL size (W × displayScale). Scale the SVG to match.
+     * SVG has viewBox baked in by fitfull v1.2+, so just rewrite width/height attrs.
+     */
+    function scaleSvg(svg: string, scale: number): string {
+        const visualW = box.width * scale;
+        const visualH = box.height * scale;
+        return svg
+            .replace(/width="[^"]*"/, `width="${visualW}"`)
+            .replace(/height="[^"]*"/, `height="${visualH}"`);
+    }
 </script>
 
 <section class="preview">
@@ -84,7 +107,11 @@
             <div class="fitbox"
                  style:width="{box.width * displayScale}px"
                  style:height="{box.height * displayScale}px">
-                <span class="placeholder">no fit yet</span>
+                {#if fit.result}
+                    {@html scaleSvg(fit.result.svg, displayScale)}
+                {:else}
+                    <span class="placeholder">no fit yet</span>
+                {/if}
             </div>
             {#each handleDirs as dir}
                 <div class="handle handle-{dir}"
