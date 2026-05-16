@@ -34,6 +34,7 @@
                     <span class="dot"></span>
                     Dimensions
                 </span>
+                <span class="val">{box.width} × {box.height}</span>
             </div>
             <div class="section-body">
                 <div class="numpair">
@@ -136,7 +137,14 @@
     }
     .sheet-body { overflow-y: auto; min-height: 0; }
     .section { border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800)); }
-    .section-head { display: flex; align-items: center; padding: 12px 14px; }
+    .section-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 14px;
+    }
+    .section-head .val {
+        font-family: 'Geist Mono', monospace; font-size: 11px;
+        color: light-dark(var(--color-surface-950), var(--color-surface-100));
+    }
     .section-head .name {
         font-size: 12px; font-weight: 500;
         display: flex; align-items: center; gap: 8px;
