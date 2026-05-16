@@ -13,3 +13,7 @@ docs/superpowers/
 test-results/
 playwright-report/
 tests/e2e/fixture-bundle.js
+
+# SvelteKit generated dirs (demo workspace package)
+.svelte-kit/
+demo/build/
