@@ -9,6 +9,12 @@ import { fit } from '$lib/fitfull/fit.svelte';
 import { doc } from '$lib/state/document.svelte';
 import type { FontWeight } from 'fitfull';
 
+// Bundled default font (Geist) — already exposed as @font-face by the
+// @fontsource/geist CSS imports in app.css, so we only need to hand the
+// bytes to fitfull. ?url returns the asset URL Vite resolves to the file.
+import geistRegularUrl from '@fontsource/geist/files/geist-latin-400-normal.woff2?url';
+import geistBoldUrl from '@fontsource/geist/files/geist-latin-700-normal.woff2?url';
+
 export type LoadStatus = 'loading' | 'loaded' | 'error';
 
 export interface WeightEntry {
@@ -86,6 +92,45 @@ class FontRegistry {
             entry.weights.set(weight, { status: 'error', error: (e as Error).message });
             this.entries = new Map(this.entries);
         }
+    }
+
+    /**
+     * Load the bundled default font (Geist 400 + 700) and register with fitfull
+     * so the canvas renders text on first load. Skips injectFontFace because
+     * @fontsource/geist already provides @font-face via app.css imports.
+     */
+    async loadDefault(): Promise<void> {
+        const family = 'Geist';
+        const targets: Array<{ weight: FontWeight; url: string }> = [
+            { weight: 'regular', url: geistRegularUrl },
+            { weight: 'bold', url: geistBoldUrl },
+        ];
+
+        let entry = this.entries.get(family);
+        if (!entry) {
+            entry = { family, weights: new Map() };
+            this.entries.set(family, entry);
+        }
+        for (const { weight } of targets) {
+            if (!entry.weights.has(weight)) entry.weights.set(weight, { status: 'loading' });
+        }
+        this.entries = new Map(this.entries);
+
+        await Promise.all(
+            targets.map(async ({ weight, url }) => {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const bytes = await res.arrayBuffer();
+                    fit.registerFont(family, weight, bytes);
+                    entry!.weights.set(weight, { status: 'loaded' });
+                } catch (e) {
+                    entry!.weights.set(weight, { status: 'error', error: (e as Error).message });
+                }
+            }),
+        );
+        this.entries = new Map(this.entries);
+        fit.scheduleFit();
     }
 
     /** Remove all weights of a family. No-op if any weight is in-use (runs > 0). */
