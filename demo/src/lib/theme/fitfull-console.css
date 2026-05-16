@@ -1,0 +1,255 @@
+/* src/lib/theme/fitfull-console.css
+ * fitfull-console — warm near-black surfaces + electric lime primary.
+ * Mockup reference: docs/superpowers/brainstorm-mockups/design-v27-final.html
+ * Research:        docs/superpowers/research/2026-05-16-skeleton-v3.md
+ */
+[data-theme="fitfull-console"] {
+  /* --- Global --- */
+  --spacing: 0.25rem;
+  --text-scaling: 1.0;
+
+  /* --- Typography --- */
+  --base-font-color: var(--color-surface-950);
+  --base-font-color-dark: var(--color-surface-100);
+  --base-font-family: 'Geist', system-ui, sans-serif;
+  --base-font-size: inherit;
+  --base-line-height: 1.5;
+  --base-font-weight: 400;
+  --base-font-style: normal;
+  --base-letter-spacing: -0.005em;
+
+  --heading-font-color: inherit;
+  --heading-font-color-dark: inherit;
+  --heading-font-family: 'Geist', system-ui, sans-serif;
+  --heading-font-weight: 600;
+  --heading-font-style: normal;
+  --heading-letter-spacing: -0.02em;
+
+  --anchor-font-color: var(--color-primary-700);
+  --anchor-font-color-dark: var(--color-primary-500);
+  --anchor-font-family: inherit;
+  --anchor-font-size: inherit;
+  --anchor-line-height: inherit;
+  --anchor-font-weight: 500;
+  --anchor-font-style: inherit;
+  --anchor-letter-spacing: inherit;
+  --anchor-text-decoration: none;
+  --anchor-text-decoration-hover: underline;
+  --anchor-text-decoration-active: none;
+  --anchor-text-decoration-focus: none;
+
+  /* --- Body --- */
+  --body-background-color: var(--color-surface-50);
+  --body-background-color-dark: var(--color-surface-950);
+
+  /* --- Radii + edges --- */
+  --radius-base: 0.375rem;
+  --radius-container: 0.625rem;
+  --default-border-width: 1px;
+  --default-divide-width: 1px;
+  --default-ring-width: 1px;
+
+  /* --- Typography extras (not part of Skeleton core but used by the demo) --- */
+  --typo-base--font-family: 'Geist', system-ui, sans-serif;
+  --typo-base--font-feature-settings: 'cv11', 'ss01', 'ss03';
+  --typo-mono--font-family: 'Geist Mono', monospace;
+
+  /* --- Surface (warm near-black ramp, hue 80 = warm yellow-grey) --- */
+  --color-surface-50:  oklch(0.985 0.003 80);
+  --color-surface-100: oklch(0.965 0.004 80);
+  --color-surface-200: oklch(0.92  0.005 80);
+  --color-surface-300: oklch(0.83  0.006 80);
+  --color-surface-400: oklch(0.68  0.008 80);
+  --color-surface-500: oklch(0.52  0.008 80);
+  --color-surface-600: oklch(0.40  0.008 80);
+  --color-surface-700: oklch(0.30  0.008 80);
+  --color-surface-800: oklch(0.235 0.008 80);
+  --color-surface-900: oklch(0.185 0.008 80);
+  --color-surface-950: oklch(0.135 0.008 80);
+  --color-surface-contrast-dark: var(--color-surface-950);
+  --color-surface-contrast-light: var(--color-surface-50);
+  --color-surface-contrast-50:  var(--color-surface-contrast-dark);
+  --color-surface-contrast-100: var(--color-surface-contrast-dark);
+  --color-surface-contrast-200: var(--color-surface-contrast-dark);
+  --color-surface-contrast-300: var(--color-surface-contrast-dark);
+  --color-surface-contrast-400: var(--color-surface-contrast-light);
+  --color-surface-contrast-500: var(--color-surface-contrast-light);
+  --color-surface-contrast-600: var(--color-surface-contrast-light);
+  --color-surface-contrast-700: var(--color-surface-contrast-light);
+  --color-surface-contrast-800: var(--color-surface-contrast-light);
+  --color-surface-contrast-900: var(--color-surface-contrast-light);
+  --color-surface-contrast-950: var(--color-surface-contrast-light);
+
+  /* --- Primary (electric lime, hue ~130) --- */
+  --color-primary-50:  oklch(0.985 0.04 130);
+  --color-primary-100: oklch(0.96  0.06 130);
+  --color-primary-200: oklch(0.93  0.10 130);
+  --color-primary-300: oklch(0.90  0.14 130);
+  --color-primary-400: oklch(0.87  0.18 130);
+  --color-primary-500: oklch(0.84  0.21 130);
+  --color-primary-600: oklch(0.74  0.19 130);
+  --color-primary-700: oklch(0.62  0.16 130);
+  --color-primary-800: oklch(0.50  0.14 130);
+  --color-primary-900: oklch(0.36  0.10 130);
+  --color-primary-950: oklch(0.22  0.06 130);
+  --color-primary-contrast-dark: var(--color-surface-950);
+  --color-primary-contrast-light: var(--color-surface-50);
+  --color-primary-contrast-50:  var(--color-primary-contrast-dark);
+  --color-primary-contrast-100: var(--color-primary-contrast-dark);
+  --color-primary-contrast-200: var(--color-primary-contrast-dark);
+  --color-primary-contrast-300: var(--color-primary-contrast-dark);
+  --color-primary-contrast-400: var(--color-primary-contrast-dark);
+  --color-primary-contrast-500: var(--color-primary-contrast-dark);
+  --color-primary-contrast-600: var(--color-primary-contrast-dark);
+  --color-primary-contrast-700: var(--color-primary-contrast-light);
+  --color-primary-contrast-800: var(--color-primary-contrast-light);
+  --color-primary-contrast-900: var(--color-primary-contrast-light);
+  --color-primary-contrast-950: var(--color-primary-contrast-light);
+
+  /* --- Secondary --- (unused in mockup; alias to surface so Skeleton stays happy) */
+  --color-secondary-50:  var(--color-surface-50);
+  --color-secondary-100: var(--color-surface-100);
+  --color-secondary-200: var(--color-surface-200);
+  --color-secondary-300: var(--color-surface-300);
+  --color-secondary-400: var(--color-surface-400);
+  --color-secondary-500: var(--color-surface-500);
+  --color-secondary-600: var(--color-surface-600);
+  --color-secondary-700: var(--color-surface-700);
+  --color-secondary-800: var(--color-surface-800);
+  --color-secondary-900: var(--color-surface-900);
+  --color-secondary-950: var(--color-surface-950);
+  --color-secondary-contrast-dark: var(--color-surface-950);
+  --color-secondary-contrast-light: var(--color-surface-50);
+  --color-secondary-contrast-50:  var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-100: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-200: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-300: var(--color-secondary-contrast-dark);
+  --color-secondary-contrast-400: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-500: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-600: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-700: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-800: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-900: var(--color-secondary-contrast-light);
+  --color-secondary-contrast-950: var(--color-secondary-contrast-light);
+
+  /* --- Tertiary --- (also unused; alias to surface) */
+  --color-tertiary-50:  var(--color-surface-50);
+  --color-tertiary-100: var(--color-surface-100);
+  --color-tertiary-200: var(--color-surface-200);
+  --color-tertiary-300: var(--color-surface-300);
+  --color-tertiary-400: var(--color-surface-400);
+  --color-tertiary-500: var(--color-surface-500);
+  --color-tertiary-600: var(--color-surface-600);
+  --color-tertiary-700: var(--color-surface-700);
+  --color-tertiary-800: var(--color-surface-800);
+  --color-tertiary-900: var(--color-surface-900);
+  --color-tertiary-950: var(--color-surface-950);
+  --color-tertiary-contrast-dark:  var(--color-surface-950);
+  --color-tertiary-contrast-light: var(--color-surface-50);
+  --color-tertiary-contrast-50:  var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-100: var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-200: var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-300: var(--color-tertiary-contrast-dark);
+  --color-tertiary-contrast-400: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-500: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-600: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-700: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-800: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-900: var(--color-tertiary-contrast-light);
+  --color-tertiary-contrast-950: var(--color-tertiary-contrast-light);
+
+  /* --- Success (mockup: oklch(0.78 0.15 145)) --- */
+  --color-success-50:  oklch(0.97 0.04 145);
+  --color-success-100: oklch(0.94 0.07 145);
+  --color-success-200: oklch(0.90 0.10 145);
+  --color-success-300: oklch(0.85 0.13 145);
+  --color-success-400: oklch(0.81 0.15 145);
+  --color-success-500: oklch(0.78 0.15 145);
+  --color-success-600: oklch(0.68 0.14 145);
+  --color-success-700: oklch(0.55 0.12 145);
+  --color-success-800: oklch(0.43 0.10 145);
+  --color-success-900: oklch(0.32 0.08 145);
+  --color-success-950: oklch(0.22 0.05 145);
+  --color-success-contrast-dark: var(--color-surface-950);
+  --color-success-contrast-light: var(--color-surface-50);
+  --color-success-contrast-50:  var(--color-success-contrast-dark);
+  --color-success-contrast-100: var(--color-success-contrast-dark);
+  --color-success-contrast-200: var(--color-success-contrast-dark);
+  --color-success-contrast-300: var(--color-success-contrast-dark);
+  --color-success-contrast-400: var(--color-success-contrast-dark);
+  --color-success-contrast-500: var(--color-success-contrast-dark);
+  --color-success-contrast-600: var(--color-success-contrast-dark);
+  --color-success-contrast-700: var(--color-success-contrast-light);
+  --color-success-contrast-800: var(--color-success-contrast-light);
+  --color-success-contrast-900: var(--color-success-contrast-light);
+  --color-success-contrast-950: var(--color-success-contrast-light);
+
+  /* --- Warning (mockup: oklch(0.80 0.16 75)) --- */
+  --color-warning-50:  oklch(0.97 0.04 75);
+  --color-warning-100: oklch(0.94 0.07 75);
+  --color-warning-200: oklch(0.90 0.10 75);
+  --color-warning-300: oklch(0.86 0.13 75);
+  --color-warning-400: oklch(0.83 0.15 75);
+  --color-warning-500: oklch(0.80 0.16 75);
+  --color-warning-600: oklch(0.70 0.15 75);
+  --color-warning-700: oklch(0.58 0.13 75);
+  --color-warning-800: oklch(0.45 0.11 75);
+  --color-warning-900: oklch(0.33 0.08 75);
+  --color-warning-950: oklch(0.22 0.05 75);
+  --color-warning-contrast-dark: var(--color-surface-950);
+  --color-warning-contrast-light: var(--color-surface-50);
+  --color-warning-contrast-50:  var(--color-warning-contrast-dark);
+  --color-warning-contrast-100: var(--color-warning-contrast-dark);
+  --color-warning-contrast-200: var(--color-warning-contrast-dark);
+  --color-warning-contrast-300: var(--color-warning-contrast-dark);
+  --color-warning-contrast-400: var(--color-warning-contrast-dark);
+  --color-warning-contrast-500: var(--color-warning-contrast-dark);
+  --color-warning-contrast-600: var(--color-warning-contrast-dark);
+  --color-warning-contrast-700: var(--color-warning-contrast-light);
+  --color-warning-contrast-800: var(--color-warning-contrast-light);
+  --color-warning-contrast-900: var(--color-warning-contrast-light);
+  --color-warning-contrast-950: var(--color-warning-contrast-light);
+
+  /* --- Error (mockup: oklch(0.68 0.20 25)) --- */
+  --color-error-50:  oklch(0.96 0.04 25);
+  --color-error-100: oklch(0.91 0.08 25);
+  --color-error-200: oklch(0.85 0.12 25);
+  --color-error-300: oklch(0.79 0.16 25);
+  --color-error-400: oklch(0.74 0.19 25);
+  --color-error-500: oklch(0.68 0.20 25);
+  --color-error-600: oklch(0.60 0.19 25);
+  --color-error-700: oklch(0.52 0.17 25);
+  --color-error-800: oklch(0.44 0.15 25);
+  --color-error-900: oklch(0.36 0.13 25);
+  --color-error-950: oklch(0.27 0.10 25);
+  --color-error-contrast-dark: var(--color-surface-950);
+  --color-error-contrast-light: var(--color-surface-50);
+  --color-error-contrast-50:  var(--color-error-contrast-dark);
+  --color-error-contrast-100: var(--color-error-contrast-dark);
+  --color-error-contrast-200: var(--color-error-contrast-dark);
+  --color-error-contrast-300: var(--color-error-contrast-dark);
+  --color-error-contrast-400: var(--color-error-contrast-light);
+  --color-error-contrast-500: var(--color-error-contrast-light);
+  --color-error-contrast-600: var(--color-error-contrast-light);
+  --color-error-contrast-700: var(--color-error-contrast-light);
+  --color-error-contrast-800: var(--color-error-contrast-light);
+  --color-error-contrast-900: var(--color-error-contrast-light);
+  --color-error-contrast-950: var(--color-error-contrast-light);
+}
+
+/* App-level extras the mockup uses but Skeleton doesn't dictate.
+ * Defined at :root so they're available regardless of active theme/mode.
+ */
+:root {
+  --color-brand:    light-dark(var(--color-primary-700), var(--color-primary-500));
+  --color-brand-on: light-dark(white, oklch(0.18 0.008 80));
+  --syn-key:    light-dark(oklch(0.45 0.16 250), oklch(0.78 0.12 220));
+  --syn-string: light-dark(oklch(0.45 0.14 150), oklch(0.80 0.14 145));
+  --syn-num:    light-dark(oklch(0.55 0.18 30),  oklch(0.82 0.14 40));
+  --syn-punct:  light-dark(var(--color-surface-500), var(--color-surface-500));
+  --syn-bool:   light-dark(oklch(0.50 0.18 290), oklch(0.78 0.14 290));
+}
+
+/* color-scheme drives light-dark() — must match data-mode for Color Pairings to flip. */
+[data-mode="dark"]  { color-scheme: dark; }
+[data-mode="light"] { color-scheme: light; }

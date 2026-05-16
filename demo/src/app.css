@@ -1,1 +1,20 @@
-/* Placeholder — full theme + Tailwind imports land in Task 4 */
+@import 'tailwindcss';
+@import '@skeletonlabs/skeleton';
+@import './lib/theme/fitfull-console.css';
+
+@import '@fontsource/geist/400.css';
+@import '@fontsource/geist/500.css';
+@import '@fontsource/geist/600.css';
+@import '@fontsource/geist/700.css';
+@import '@fontsource/geist/800.css';
+@import '@fontsource/geist-mono/400.css';
+@import '@fontsource/geist-mono/500.css';
+
+/* Lock body to viewport — no page scroll. Inner panes scroll if needed. */
+html, body {
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
