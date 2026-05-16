@@ -216,4 +216,36 @@ describe('Fitfull', () => {
         assert.strictEqual(result.textWidth, 0);
         assert.strictEqual(result.textHeight, 0);
     });
+
+    test('per-token color overrides top-level color', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            tokens: [
+                { text: 'red', size: 12, font: INTER_REGULAR, weight: 'regular', color: '#ff0000' },
+                { text: ' ', size: 12, font: INTER_REGULAR, weight: 'regular' },
+                { text: 'blue', size: 12, font: INTER_REGULAR, weight: 'regular', color: 'blue' },
+                { text: ' default', size: 12, font: INTER_REGULAR, weight: 'regular' },
+            ],
+            width: 400,
+            height: 100,
+            color: 'green',
+        });
+        assert.ok(result.svg.includes('fill="#ff0000"'), 'svg should contain per-token red');
+        assert.ok(result.svg.includes('fill="blue"'), 'svg should contain per-token blue');
+        assert.ok(result.svg.includes('fill="green"'), 'svg should contain fallback green for tokens without color');
+    });
+
+    test('invalid per-token color throws', async () => {
+        const ff = Fitfull.create();
+        await assert.rejects(
+            ff.fit({
+                tokens: [
+                    { text: 'bad', size: 12, font: INTER_REGULAR, weight: 'regular', color: 'red"/><script>alert(1)</script>' },
+                ],
+                width: 400,
+                height: 100,
+            }),
+            /Invalid .* color/
+        );
+    });
 });
