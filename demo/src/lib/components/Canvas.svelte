@@ -166,11 +166,14 @@
     .fitbox {
         position: relative;
         border-radius: 0.375rem;
+        /* Checkerboard pattern indicates transparent areas in the export
+           (Figma/Photoshop convention). Any background color the user picks
+           is baked into the SVG by fitfull, covering the checkerboard. */
+        --cb-a: light-dark(var(--color-surface-100), var(--color-surface-800));
+        --cb-b: light-dark(var(--color-surface-200), var(--color-surface-700));
         background:
-            linear-gradient(to bottom right,
-                color-mix(in oklab, var(--color-brand) 5%, transparent),
-                transparent 40%),
-            light-dark(var(--color-surface-50), var(--color-surface-900));
+            conic-gradient(var(--cb-a) 25%, var(--cb-b) 0 50%, var(--cb-a) 0 75%, var(--cb-b) 0)
+            0 0 / 16px 16px;
         border: 1px solid light-dark(var(--color-surface-300), var(--color-surface-700));
         box-shadow:
             inset 0 0 0 1px color-mix(in oklab, var(--color-brand) 8%, transparent),

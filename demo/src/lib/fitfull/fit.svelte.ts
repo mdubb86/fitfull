@@ -1,13 +1,6 @@
 import { Fitfull, type FitResult } from 'fitfull/browser';
 import { box } from '$lib/state/box.svelte';
 import { doc } from '$lib/state/document.svelte';
-import { theme } from '$lib/state/theme.svelte';
-
-/** Default text color when a token doesn't carry its own. Matches the warm
- *  near-black/near-white surface ramp in fitfull-console.css. */
-function defaultColor(): string {
-    return theme.mode === 'dark' ? '#f5f4f0' : '#0d0c0a';
-}
 
 /**
  * Reactive wrapper around fitfull's fit() pipeline. Singleton.
@@ -39,15 +32,19 @@ class FitState {
             // fitfull used for THIS run, not the live box state.
             const w = box.width;
             const h = box.height;
-            const res = await this.ff.fit({
+            const fitOpts: Parameters<typeof this.ff.fit>[0] = {
                 tokens: doc.tokens,
                 width: w,
                 height: h,
                 wrap: box.wrap,
                 align: box.align,
                 lineSpacing: box.lineSpacing,
-                color: defaultColor(),
-            });
+                color: box.textColor,
+            };
+            // Only pass `background` when explicitly set — otherwise fitfull
+            // renders no bg rect and the SVG/PNG export stays transparent.
+            if (box.bgColor) fitOpts.background = box.bgColor;
+            const res = await this.ff.fit(fitOpts);
             this.result = res;
             this.fitBoxW = w;
             this.fitBoxH = h;
@@ -77,14 +74,14 @@ class FitState {
 
 export const fit = new FitState();
 
-// Refit on token changes (doc.tokens flows from WYSIWYG or Tokens editor)
-// AND on theme change — the default color depends on theme.mode, so a
-// theme flip needs to re-render so untinted text contrasts the new bg.
-// Module-scope effect — needs $effect.root so it isn't tied to a component.
+// Refit on token changes AND on text/bg color changes — those flow into the
+// rendered SVG output so a change requires a re-render. Box dims/wrap/align/
+// spacing are already handled by Canvas.svelte's effect on drag end.
 $effect.root(() => {
     $effect(() => {
-        doc.tokens;   // tracked dep
-        theme.mode;   // tracked dep — re-fit when light/dark flips
+        doc.tokens;
+        box.textColor;
+        box.bgColor;
         fit.scheduleFit();
     });
 });

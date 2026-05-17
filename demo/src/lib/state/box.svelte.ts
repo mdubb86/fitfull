@@ -10,6 +10,10 @@ class BoxState {
     wrap = $state<WrapMode>('balanced');
     align = $state<Align>('center');
     lineSpacing = $state(1.0);
+    /** Document-level default text color for tokens without their own. */
+    textColor = $state('#000000');
+    /** Canvas background color baked into the SVG/PNG export. null = transparent. */
+    bgColor = $state<string | null>(null);
 
     get aspect() {
         return this.width / this.height;

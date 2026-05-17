@@ -2,6 +2,7 @@
     import { box } from '$lib/state/box.svelte';
     import { fit } from '$lib/fitfull/fit.svelte';
     import { ui } from '$lib/state/ui.svelte';
+    import ColorPickerButton from './ColorPickerButton.svelte';
 
     function onDimInput() {
         // bind:value already updated box.width/box.height; trigger a debounced fit.
@@ -19,6 +20,11 @@
     function onSpacingChange() {
         fit.scheduleFit(0);
     }
+
+    function setTextColor(hex: string) { box.textColor = hex; }
+    function resetTextColor()           { box.textColor = '#000000'; }
+    function setBgColor(hex: string)   { box.bgColor = hex; }
+    function resetBgColor()             { box.bgColor = null; }
 </script>
 
 <aside class="sheet sheet-right" class:collapsed={ui.rightCollapsed}>
@@ -100,6 +106,38 @@
                         <span class="val">{box.lineSpacing.toFixed(1)}×</span>
                     </div>
                     <input class="slider" type="range" min="0.8" max="1.5" step="0.05" bind:value={box.lineSpacing} onchange={onSpacingChange} />
+                </div>
+            </div>
+        </div>
+
+        <!-- Colors -->
+        <div class="section">
+            <div class="section-head">
+                <span class="name">
+                    <span class="dot"></span>
+                    Colors
+                </span>
+            </div>
+            <div class="section-body">
+                <div class="field color-field">
+                    <div class="field-head">
+                        <span class="lbl">Text default</span>
+                        {#if box.textColor.toLowerCase() !== '#000000'}
+                            <button class="reset-color" onclick={resetTextColor} title="Reset to black">✕</button>
+                        {/if}
+                    </div>
+                    <ColorPickerButton color={box.textColor} onChange={setTextColor} />
+                </div>
+                <div class="field color-field">
+                    <div class="field-head">
+                        <span class="lbl">Background</span>
+                        {#if box.bgColor}
+                            <button class="reset-color" onclick={resetBgColor} title="Reset to transparent">✕</button>
+                        {:else}
+                            <span class="val">transparent</span>
+                        {/if}
+                    </div>
+                    <ColorPickerButton color={box.bgColor ?? '#ffffff'} onChange={setBgColor} />
                 </div>
             </div>
         </div>
@@ -253,5 +291,18 @@
     .slider {
         width: 100%;
         accent-color: var(--color-brand);
+    }
+    .color-field .field-head { margin-bottom: 6px; }
+    .reset-color {
+        width: 18px; height: 18px;
+        padding: 0; border: none; background: transparent;
+        color: light-dark(var(--color-surface-500), var(--color-surface-400));
+        font-size: 10px; cursor: pointer;
+        border-radius: 3px;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .reset-color:hover {
+        color: light-dark(var(--color-surface-950), white);
+        background: light-dark(var(--color-surface-200), var(--color-surface-800));
     }
 </style>

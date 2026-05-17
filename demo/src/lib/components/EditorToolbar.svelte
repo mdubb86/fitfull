@@ -5,6 +5,7 @@
     import ColorPickerButton from './ColorPickerButton.svelte';
     import FontPickerModal from './FontPickerModal.svelte';
     import { fonts } from '$lib/state/fonts.svelte';
+    import { box } from '$lib/state/box.svelte';
     import { portalToBody } from '$lib/actions/portal';
 
     let { editor }: { editor: Editor } = $props();
@@ -24,7 +25,10 @@
         snapshot = {
             bold: editor.isActive('bold'),
             italic: editor.isActive('italic'),
-            color: editor.getAttributes('textStyle').color ?? '#000000',
+            // Fall back to the doc-level default text color when the current
+            // selection has no per-token color set — so the swatch reflects
+            // what the text will actually render as.
+            color: editor.getAttributes('textStyle').color ?? box.textColor,
             size: editor.getAttributes('textStyle').size ?? 1,
             fontFamily: editor.getAttributes('textStyle').fontFamily ?? null,
         };
