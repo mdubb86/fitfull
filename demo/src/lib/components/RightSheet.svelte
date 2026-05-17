@@ -143,6 +143,11 @@
                                 </div>
                             {/each}
                         </div>
+                        <div {...linesApi.getMarkerGroupProps()} class="lines-markers">
+                            {#each Array(10) as _, i (i)}
+                                <span {...linesApi.getMarkerProps({ value: i + 1 })} class="lines-marker"></span>
+                            {/each}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -363,6 +368,19 @@
     .lines-thumb:focus-visible {
         outline: none;
         box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brand) 30%, transparent);
+    }
+    /* Tick marks below the track at each integer step (1..10).
+       Zag positions them via inline left/top per value. */
+    .lines-markers {
+        position: relative;
+        height: 8px;
+        margin-top: 4px;
+    }
+    .lines-marker {
+        position: absolute;
+        width: 1px; height: 6px;
+        background: light-dark(var(--color-surface-300), var(--color-surface-700));
+        transform: translateX(-50%);
     }
     .color-field .field-head { margin-bottom: 6px; }
     .reset-color {
