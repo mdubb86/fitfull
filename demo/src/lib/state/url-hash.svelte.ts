@@ -1,20 +1,16 @@
-// Module-singleton: URL hash state syncer.
+// Shareable state encoded as gzip+base64url. The hash is *not* a continuous
+// reflection of state — it only exists as the artifact of a deliberate share
+// action. Three pieces:
 //
-// Encodes the demo's user-meaningful state (doc, box, registered font families)
-// as gzip+base64url in `location.hash`. Two flows:
+//   - buildShareUrl():  called on Share-button click. Snapshots state, encodes,
+//                       returns the full URL. Doesn't touch location.
+//   - applyHashFromUrl(): called once at mount. If location.hash carries an
+//                       encoded payload, restore the singletons from it AND
+//                       clear the hash (so the URL goes back to clean once
+//                       the user is editing).
 //
-//   - OUTBOUND: a debounced $effect.root watches doc/box/fonts and writes the
-//     hash via history.replaceState (~500 ms after the last edit), so editing
-//     the demo always keeps the URL shareable without polluting back/forward.
-//   - INBOUND: applyHashFromUrl() reads the hash and rehydrates the singletons
-//     (called once at app mount, and on every `hashchange` for back/forward).
-//
-// A module-scope `suppressPush` flag prevents the inbound applier's writes
-// from re-triggering the outbound effect (which would push another identical
-// hash, no-op'ing but waking the timer). Encoded payload is also compared
-// against the current hash before writing, so even without the flag we
-// wouldn't loop — the flag is belt-and-suspenders for the multi-write burst
-// during restoration.
+// No reactive sync, no hashchange listener — the URL is "clean" except for
+// the brief moment between landing on a shared link and the first paint.
 
 import pako from 'pako';
 import { doc } from '$lib/state/document.svelte';
@@ -75,10 +71,6 @@ function decode(hash: string): SharedState | null {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Sync API
-// ---------------------------------------------------------------------------
-
 function snapshot(): SharedState {
     return {
         v: 1,
@@ -94,17 +86,9 @@ function snapshot(): SharedState {
     };
 }
 
-let suppressPush = false;
-
-/** Push current state to the URL hash via history.replaceState (no history spam). */
-export function pushHash(): void {
-    if (typeof window === 'undefined') return;
-    if (suppressPush) return;
-    const encoded = encode(snapshot());
-    const next = '#' + encoded;
-    if (window.location.hash === next) return; // identical — skip
-    history.replaceState(null, '', next);
-}
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
 
 /** Build a shareable URL for the current state without modifying location. */
 export function buildShareUrl(): string {
@@ -113,70 +97,35 @@ export function buildShareUrl(): string {
     return `${window.location.origin}${window.location.pathname}#${encoded}`;
 }
 
-/** Read & apply hash state to the singletons. Safe to call multiple times. */
+/**
+ * Read state from `location.hash`, apply it to the singletons, then clear
+ * the hash so the URL goes back to looking clean. No-op if hash is empty
+ * or doesn't decode.
+ */
 export async function applyHashFromUrl(): Promise<void> {
     if (typeof window === 'undefined') return;
     const raw = window.location.hash.slice(1);
     if (!raw) return;
     const state = decode(raw);
+
+    // Always clear the hash once we've consumed (or attempted to consume) it,
+    // so a stale/garbled hash doesn't linger in the URL bar either.
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+
     if (!state) return;
 
-    suppressPush = true;
-    try {
-        box.width = state.box.w;
-        box.height = state.box.h;
-        box.wrap = state.box.wrap;
-        box.align = state.box.align;
-        box.lineSpacing = state.box.ls;
-        doc.pmJson = state.doc;
+    box.width = state.box.w;
+    box.height = state.box.h;
+    box.wrap = state.box.wrap;
+    box.align = state.box.align;
+    box.lineSpacing = state.box.ls;
+    doc.pmJson = state.doc;
 
-        // Kick font loads in parallel — don't await, let the registry update
-        // reactively as each resolves. Skip families already registered (Geist
-        // from loadDefault, plus any user already added).
-        const already = new Set(fonts.families());
-        for (const family of state.fonts) {
-            if (!already.has(family)) {
-                void fonts.loadFamily(family);
-            }
+    // Kick font loads in parallel — don't await, the registry updates reactively.
+    const already = new Set(fonts.families());
+    for (const family of state.fonts) {
+        if (!already.has(family)) {
+            void fonts.loadFamily(family);
         }
-    } finally {
-        // Release on a microtask so the burst of writes above all coalesce
-        // into a single suppressed effect tick before we re-enable pushing.
-        queueMicrotask(() => {
-            suppressPush = false;
-        });
     }
-}
-
-// ---------------------------------------------------------------------------
-// Reactive outbound sync (module scope)
-// ---------------------------------------------------------------------------
-
-if (typeof window !== 'undefined') {
-    $effect.root(() => {
-        let timer: ReturnType<typeof setTimeout> | null = null;
-        $effect(() => {
-            // Track all serialized state. Touch the reactive surfaces so the
-            // effect re-runs on any change. The read of fonts.families() taps
-            // the entries-map reactivity (replaced wholesale in fonts.svelte.ts).
-            void doc.pmJson;
-            void box.width;
-            void box.height;
-            void box.wrap;
-            void box.align;
-            void box.lineSpacing;
-            void fonts.families();
-
-            if (timer) clearTimeout(timer);
-            timer = setTimeout(pushHash, 500);
-        });
-        return () => {
-            if (timer) clearTimeout(timer);
-        };
-    });
-
-    // Browser back/forward — re-apply whatever hash the user navigated to.
-    window.addEventListener('hashchange', () => {
-        void applyHashFromUrl();
-    });
 }
