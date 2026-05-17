@@ -33,6 +33,7 @@
         "@zag-js/svelte": "1.39.1",
         "codemirror-json-schema": "^0.8.1",
         "fitfull": "workspace:*",
+        "pako": "^2.1.0",
         "svelte-tiptap": "^3.0.1"
     },
     "devDependencies": {
@@ -44,6 +45,7 @@
         "@sveltejs/kit": "^2.59.0",
         "@sveltejs/vite-plugin-svelte": "^7.1.0",
         "@tailwindcss/vite": "^4.3.0",
+        "@types/pako": "^2.0.4",
         "google-font-metadata": "^6.0.8",
         "svelte": "^5.55.0",
         "svelte-check": "^4.0.0",

@@ -2,17 +2,42 @@
     import { fit } from '$lib/fitfull/fit.svelte';
     import { downloadSvg } from '$lib/exports/svg';
     import { downloadPng } from '$lib/exports/png';
+    import { buildShareUrl } from '$lib/state/url-hash.svelte';
 
-    const state = $derived(fit.state);
+    const fitState = $derived(fit.state);
     const canExport = $derived(fit.result !== null);
+
+    let copiedFlash = $state(false);
+    let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+
+    async function copyShareUrl() {
+        const url = buildShareUrl();
+        try {
+            await navigator.clipboard.writeText(url);
+        } catch {
+            // Clipboard API can fail (insecure context, denied permission, etc.).
+            // For v1 we just log — the URL is still visible in the address bar
+            // because the outbound effect keeps the hash up to date.
+            console.warn('Clipboard write failed; URL:', url);
+        }
+        copiedFlash = true;
+        if (copiedTimer) clearTimeout(copiedTimer);
+        copiedTimer = setTimeout(() => {
+            copiedFlash = false;
+        }, 1500);
+    }
 </script>
 
 <div class="canvas-header">
-    <span class="state state-{state}">
+    <span class="state state-{fitState}">
         <span class="pip"></span>
-        <span>{state}</span>
+        <span>{fitState}</span>
     </span>
     <div class="actions">
+        <button class="btn-action" onclick={copyShareUrl} title="Copy shareable URL">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            {copiedFlash ? 'Copied!' : 'Share'}
+        </button>
         <button class="btn-action" onclick={() => downloadSvg()} disabled={!canExport}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             .svg
