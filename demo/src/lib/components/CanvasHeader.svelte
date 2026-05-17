@@ -2,6 +2,7 @@
     import * as menu from '@zag-js/menu';
     import { normalizeProps, useMachine } from '@zag-js/svelte';
     import { fit } from '$lib/fitfull/fit.svelte';
+    import { box } from '$lib/state/box.svelte';
     import { downloadSvg } from '$lib/exports/svg';
     import { downloadPng } from '$lib/exports/png';
     import { buildShareUrl } from '$lib/state/url-hash.svelte';
@@ -22,10 +23,8 @@
         return raw.length > 60 ? raw.slice(0, 57) + '…' : raw;
     }
 
-    // Natural PNG dims = the SVG's natural size, which equals the fitted text
-    // bbox (round here so the menu shows clean integers).
-    const naturalW = $derived(Math.round(fit.result?.width ?? 0));
-    const naturalH = $derived(Math.round(fit.result?.height ?? 0));
+    // PNG export uses box-sized output (see box-svg.ts), so the menu shows
+    // box dims × scale, not the inner text bbox dims.
     const pngScales = [1, 2, 3];
 
     const pngMenuId = $props.id();
@@ -93,7 +92,7 @@
                 class="png-menu-item"
             >
                 <span class="scale">{s}×</span>
-                <span class="dims">{naturalW * s} × {naturalH * s}</span>
+                <span class="dims">{box.width * s} × {box.height * s}</span>
             </div>
         {/each}
     </div>

@@ -1,20 +1,22 @@
 import { fit } from '$lib/fitfull/fit.svelte';
+import { box } from '$lib/state/box.svelte';
+import { buildBoxSizedSvg } from './box-svg';
 
 export async function downloadPng(
     filename = 'fitfull-headline.png',
     scale = 1,
 ) {
     if (!fit.result) return;
-    const svgBlob = new Blob([fit.result.svg], { type: 'image/svg+xml' });
+    // Box-sized SVG so the PNG is the full box (with text positioned per align
+    // and bgColor filled if set) — matches what the user sees in the canvas.
+    const svgBlob = new Blob([buildBoxSizedSvg()], { type: 'image/svg+xml' });
     const svgUrl = URL.createObjectURL(svgBlob);
     try {
         const img = new Image();
         img.src = svgUrl;
         await img.decode();
-        // Use the SVG's natural dimensions (set by fitfull). 1:1 scale matches
-        // the CLI which uses resvg's `fitTo: 'original'` — no upscaling.
-        const w = img.naturalWidth || fit.result.width;
-        const h = img.naturalHeight || fit.result.height;
+        const w = box.width;
+        const h = box.height;
         const canvas = document.createElement('canvas');
         canvas.width = w * scale;
         canvas.height = h * scale;
