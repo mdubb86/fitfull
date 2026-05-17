@@ -125,7 +125,7 @@
                         <span class="lbl">Line spacing</span>
                         <span class="val">{box.lineSpacing.toFixed(1)}×</span>
                     </div>
-                    <input class="slider" type="range" min="0" max="1.5" step="0.05" bind:value={box.lineSpacing} onchange={onSpacingChange} />
+                    <input class="slider" type="range" min="0.5" max="1.5" step="0.05" bind:value={box.lineSpacing} onchange={onSpacingChange} />
                 </div>
                 <div class="field">
                     <div class="field-head">
