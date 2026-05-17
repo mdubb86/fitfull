@@ -2,8 +2,10 @@
     import { box } from '$lib/state/box.svelte';
     import { fit } from '$lib/fitfull/fit.svelte';
 
-    const textW = $derived(fit.result?.textWidth ?? 0);
-    const textH = $derived(fit.result?.textHeight ?? 0);
+    // fitfull returns floats with full precision; round for display so the
+    // bar doesn't blow out to "291.12855740922464" on narrow viewports.
+    const textW = $derived(Math.round(fit.result?.textWidth ?? 0));
+    const textH = $derived(Math.round(fit.result?.textHeight ?? 0));
     const duration = $derived(fit.durationMs);
     const occupancy = $derived.by(() => {
         if (!fit.result) return 0;
