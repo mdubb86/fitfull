@@ -98,16 +98,27 @@
     });
 
     /**
-     * fitfull returns SVG at LOGICAL dimensions (e.g., 460×140 attrs).
-     * We display the box at VISUAL size (W × displayScale). Scale the SVG to match.
-     * SVG has viewBox baked in by fitfull v1.2+, so just rewrite width/height attrs.
+     * fitfull returns SVG at the text's tight bbox (e.g. 291×140). We display
+     * the SVG inside a box-sized container, scaled to displayScale. The viewBox
+     * + preserveAspectRatio combo positions the text within the box per the
+     * user's align choice: left = xMinYMid, center = xMidYMid, right = xMaxYMid.
+     * Vertical stays center (fitfull has no vertical align concept).
      */
     function scaleSvg(svg: string, scale: number): string {
         const visualW = box.width * scale;
         const visualH = box.height * scale;
-        return svg
+        const par = box.align === 'left'  ? 'xMinYMid meet'
+                  : box.align === 'right' ? 'xMaxYMid meet'
+                  : 'xMidYMid meet';
+        let out = svg
             .replace(/width="[^"]*"/, `width="${visualW}"`)
             .replace(/height="[^"]*"/, `height="${visualH}"`);
+        if (out.match(/preserveAspectRatio="[^"]*"/)) {
+            out = out.replace(/preserveAspectRatio="[^"]*"/, `preserveAspectRatio="${par}"`);
+        } else {
+            out = out.replace(/<svg/, `<svg preserveAspectRatio="${par}"`);
+        }
+        return out;
     }
 </script>
 
