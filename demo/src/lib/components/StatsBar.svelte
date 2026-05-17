@@ -7,9 +7,12 @@
     const textW = $derived(Math.round(fit.result?.textWidth ?? 0));
     const textH = $derived(Math.round(fit.result?.textHeight ?? 0));
     const duration = $derived(fit.durationMs);
+    // Use the box dims from the fit result, not the live box state — otherwise
+    // dragging changes the denominator before fitfull has re-run, and the
+    // displayed occupancy jitters with stale text dims.
     const occupancy = $derived.by(() => {
         if (!fit.result) return 0;
-        const area = box.width * box.height;
+        const area = fit.result.width * fit.result.height;
         if (area === 0) return 0;
         return Math.round((fit.result.textWidth * fit.result.textHeight) / area * 100);
     });
