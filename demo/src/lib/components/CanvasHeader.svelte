@@ -10,6 +10,14 @@
     const fitState = $derived(fit.state);
     const canExport = $derived(fit.result !== null);
 
+    /** Trim fitfull's verbose errors to a one-liner the user can act on. */
+    function humanizeError(raw: string): string {
+        if (raw.includes('exceeds constraint')) return "doesn't fit at current sizes";
+        if (raw.includes('not registered')) return 'font not loaded';
+        if (raw.includes('timed out')) return 'timed out';
+        return raw.length > 60 ? raw.slice(0, 57) + '…' : raw;
+    }
+
     // Natural PNG dims = the SVG's natural size, which equals the fitted text
     // bbox (round here so the menu shows clean integers).
     const naturalW = $derived(Math.round(fit.result?.width ?? 0));
@@ -49,9 +57,12 @@
 </script>
 
 <div class="canvas-header">
-    <span class="state state-{fitState}">
+    <span class="state state-{fitState}" title={fit.error ?? ''}>
         <span class="pip"></span>
         <span>{fitState}</span>
+        {#if fitState === 'error' && fit.error}
+            <span class="error-msg">— {humanizeError(fit.error)}</span>
+        {/if}
     </span>
     <div class="actions">
         <button class="btn-action" onclick={copyShareUrl} title="Copy shareable URL">
@@ -100,7 +111,12 @@
     .state {
         display: inline-flex; align-items: center; gap: 6px;
         min-width: 70px;
-        flex-shrink: 0;
+        flex-shrink: 1;        /* let the error message wrap/truncate rather than pushing actions off */
+        min-width: 0;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
         transition: color 120ms;
     }
     .state .pip {
@@ -126,6 +142,15 @@
     }
     .state-fitting .pip {
         animation: pulse 0.4s ease-in-out infinite;
+    }
+    .state-error { color: var(--color-error-500); }
+    .state-error .pip {
+        background: var(--color-error-500);
+        box-shadow: 0 0 8px var(--color-error-500);
+    }
+    .state .error-msg {
+        color: light-dark(var(--color-surface-700), var(--color-surface-300));
+        font-weight: 400;
     }
     @keyframes pulse { 50% { opacity: 0.4; } }
 

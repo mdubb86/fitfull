@@ -16,7 +16,7 @@ class FitState {
      *  jittery ratio against stale text dims. */
     fitBoxW = $state(0);
     fitBoxH = $state(0);
-    state = $state<'fit' | 'resizing' | 'fitting'>('fit');
+    state = $state<'fit' | 'resizing' | 'fitting' | 'error'>('fit');
     durationMs = $state(0);
     error = $state<string | null>(null);
 
@@ -25,6 +25,7 @@ class FitState {
 
     async runFit() {
         this.state = 'fitting';
+        // Clear any previous error so a successful re-fit removes the red pip.
         this.error = null;
         const t0 = performance.now();
         try {
@@ -51,9 +52,12 @@ class FitState {
             this.durationMs = Math.round(performance.now() - t0);
             this.state = 'fit';
         } catch (e) {
+            // Keep the last successful result on canvas so the user has SOMETHING
+            // to see, but flip state to 'error' so the UI can surface the failure
+            // (otherwise the canvas just looks stale and the user thinks edits
+            // are being ignored).
             this.error = (e as Error).message;
-            this.state = 'fit';  // not 'error' — leave the previous result visible
-            // (When fonts aren't registered yet — Phases 1-4 — this catches "Font not registered" silently.)
+            this.state = 'error';
         }
     }
 
