@@ -94,6 +94,15 @@
         editor.chain().focus().setMark('textStyle', { fontFamily: family }).run();
     }
 
+    // Prevent toolbar buttons from stealing DOM focus on mousedown. Without
+    // this, clicking the button blurs the editor, ProseMirror collapses the
+    // selection, and the subsequent setMark only writes stored marks (which
+    // don't appear in the document JSON). Result: input value updates but
+    // doc tokens never change. Applied to every button that mutates the doc.
+    function keepEditorFocus(e: MouseEvent) {
+        e.preventDefault();
+    }
+
     // Sentinel value for the "+ Add font…" menu item — anything not in fonts.families().
     const ADD_FONT_ITEM = '__add_font__';
 
@@ -120,6 +129,7 @@
             class:on={snapshot.bold}
             disabled={!supportsBold}
             onclick={toggleBold}
+            onmousedown={keepEditorFocus}
             title={supportsBold ? 'Bold' : `${activeFamily} doesn't have a bold variant`}
         ><b>B</b></button>
         <button
@@ -127,6 +137,7 @@
             class:on={snapshot.italic}
             disabled={!supportsItalic}
             onclick={toggleItalic}
+            onmousedown={keepEditorFocus}
             title={supportsItalic ? 'Italic' : `${activeFamily} doesn't have an italic variant`}
         ><i>I</i></button>
     </div>
@@ -163,10 +174,10 @@
             />
             <span class="size-x">×</span>
             <div class="stepper-buttons">
-                <button class="step" onclick={stepUp} title="Increase size" aria-label="Increase size">
+                <button class="step" onclick={stepUp} onmousedown={keepEditorFocus} title="Increase size" aria-label="Increase size">
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 15 12 9 18 15"/></svg>
                 </button>
-                <button class="step" onclick={stepDown} title="Decrease size" aria-label="Decrease size">
+                <button class="step" onclick={stepDown} onmousedown={keepEditorFocus} title="Decrease size" aria-label="Decrease size">
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
             </div>
@@ -176,7 +187,7 @@
     <span class="sep"></span>
 
     <div class="group">
-        <button class="btn" onclick={clearFormatting} title="Clear formatting">✕</button>
+        <button class="btn" onclick={clearFormatting} onmousedown={keepEditorFocus} title="Clear formatting">✕</button>
     </div>
 </div>
 
