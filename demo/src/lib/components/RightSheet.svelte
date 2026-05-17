@@ -117,6 +117,17 @@
         transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     .sheet.collapsed { width: 0; border: none; }
+    /* Mobile: fixed-position modal overlay (see LeftSheet for rationale). */
+    @media (max-width: 1023px) {
+        .sheet {
+            position: fixed;
+            top: 48px;
+            left: 0; right: 0; bottom: 0;
+            width: auto;
+            z-index: 50;
+        }
+        .sheet.collapsed { display: none; }
+    }
     .sheet-head {
         display: flex; align-items: center; justify-content: space-between;
         padding: 0 16px;

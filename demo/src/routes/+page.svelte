@@ -49,4 +49,15 @@
         grid-template-rows: auto 1fr auto;
         min-height: 0; min-width: 0;
     }
+    /* Mobile (sheets are full-viewport modals): hide pull-tabs whenever any
+       sheet is open. Without this, the open sheet covers the screen and the
+       opposite pull-tab renders on top of it. Users dismiss via the in-sheet
+       collapse button, then can tap the other pull-tab. */
+    @media (max-width: 1023px) {
+        /* :global() across the whole compound because both .sheet and .sheet-pull
+           live in child components and svelte's scoper can't see either. */
+        :global(main:has(.sheet:not(.collapsed)) .sheet-pull) {
+            display: none;
+        }
+    }
 </style>

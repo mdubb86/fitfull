@@ -57,6 +57,24 @@
         transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
     }
     .sheet.collapsed { width: 0; border: none; }
+    /* On narrow viewports the sheet becomes a fixed-position modal overlay
+       that covers everything below the AppBar. Taking it out of the grid
+       sidesteps width-negotiation issues that left the canvas peeking
+       through. Pull-tabs are hidden when any sheet is open (see +page.svelte). */
+    @media (max-width: 1023px) {
+        .sheet {
+            position: fixed;
+            top: 48px;       /* below AppBar */
+            left: 0; right: 0; bottom: 0;
+            width: auto;
+            z-index: 50;
+        }
+        .sheet.collapsed {
+            /* Off-screen rather than 0-wide so the fixed overlay can animate
+               cleanly without grid layout shifts. */
+            display: none;
+        }
+    }
     .sheet-head {
         display: flex; align-items: center; justify-content: space-between;
         padding: 0 16px;
