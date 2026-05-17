@@ -1,5 +1,4 @@
 import { fit } from '$lib/fitfull/fit.svelte';
-import { box } from '$lib/state/box.svelte';
 
 export async function downloadPng(filename = 'fitfull-headline.png', scale = 2) {
     if (!fit.result) return;
@@ -9,8 +8,11 @@ export async function downloadPng(filename = 'fitfull-headline.png', scale = 2) 
         const img = new Image();
         img.src = svgUrl;
         await img.decode();
-        const w = box.width;
-        const h = box.height;
+        // Use the SVG's natural dimensions (set by fitfull as the text's tight
+        // bounding box). Previously we sized to box.width/height, which forced
+        // a stretch when text didn't fill the box.
+        const w = img.naturalWidth || fit.result.width;
+        const h = img.naturalHeight || fit.result.height;
         const canvas = document.createElement('canvas');
         canvas.width = w * scale;
         canvas.height = h * scale;
