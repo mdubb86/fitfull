@@ -33,10 +33,12 @@ export function pmJsonToTokens(doc: PmNode): Token[] {
     const paragraphs = doc.content ?? [];
 
     paragraphs.forEach((para, paraIdx) => {
-        // Emit each text node in this paragraph as its own token.
+        // Split each text node at word boundaries — fitfull only breaks lines
+        // between tokens, so a single token containing "Ship type that" can't
+        // wrap. Match fitfull's own textToTokens convention (word + space tokens).
         for (const node of (para.content ?? [])) {
             if (node.type !== 'text' || !node.text) continue;
-            tokens.push(textNodeToToken(node));
+            tokens.push(...textNodeToTokens(node));
         }
         // Insert paragraph separator (newline) except after the last paragraph.
         if (paraIdx < paragraphs.length - 1) {
@@ -51,7 +53,8 @@ export function pmJsonToTokens(doc: PmNode): Token[] {
     return tokens;
 }
 
-function textNodeToToken(node: PmNode): Token {
+/** Build a token template from the node's marks, then stamp it onto each word/space. */
+function textNodeToTokens(node: PmNode): Token[] {
     const marks = node.marks ?? [];
     const hasBold = marks.some(m => m.type === 'bold');
     const hasItalic = marks.some(m => m.type === 'italic');
@@ -63,24 +66,34 @@ function textNodeToToken(node: PmNode): Token {
         hasBold ? 'bold' :
         hasItalic ? 'italic' :
         'regular';
-
-    // `Token.size` is required in fitfull's type. Default to 1 (no emphasis) when
-    // the textStyle mark omits `size`. Only non-1 values represent emphasis.
     const size: number =
         typeof tsAttrs.size === 'number' ? tsAttrs.size : DEFAULT_SIZE;
+    const font = typeof tsAttrs.fontFamily === 'string' ? tsAttrs.fontFamily : DEFAULT_FONT;
+    const color = typeof tsAttrs.color === 'string' && tsAttrs.color ? tsAttrs.color : undefined;
 
-    const token: Token = {
-        text: node.text!,
-        font: typeof tsAttrs.fontFamily === 'string' ? tsAttrs.fontFamily : DEFAULT_FONT,
-        weight,
-        size,
+    const make = (text: string): Token => {
+        const tok: Token = { text, font, weight, size };
+        if (color) tok.color = color;
+        return tok;
     };
-    // Per-token color (fitfull v1.5.0+). Only attach when textStyle carried one;
-    // don't synthesize a default — absence means "use the document color".
-    if (typeof tsAttrs.color === 'string' && tsAttrs.color) {
-        token.color = tsAttrs.color;
+
+    // Walk the text emitting alternating word runs and individual whitespace
+    // characters. Each space/newline gets its own token so fitfull can wrap
+    // at any boundary. Preserve leading/trailing whitespace — a node like
+    // "that " (trailing space) needs that space to survive across a node
+    // boundary (the next node starts with a bold mark).
+    const out: Token[] = [];
+    let buf = '';
+    for (const ch of node.text!) {
+        if (ch === ' ' || ch === '\n') {
+            if (buf) { out.push(make(buf)); buf = ''; }
+            out.push(make(ch));
+        } else {
+            buf += ch;
+        }
     }
-    return token;
+    if (buf) out.push(make(buf));
+    return out;
 }
 
 /**
