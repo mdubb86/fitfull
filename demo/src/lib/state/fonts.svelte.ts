@@ -183,3 +183,12 @@ class FontRegistry {
 }
 
 export const fonts = new FontRegistry();
+
+// Auto-kick the default-font load on module init in the browser. In dev,
+// Vite's HMR can re-evaluate this module (e.g. when a dependent file changes),
+// creating a fresh empty registry while the +layout component doesn't re-mount.
+// Calling loadDefault here covers both initial mount and post-HMR reloads.
+// Idempotent — addFont() short-circuits if the weight is already loaded.
+if (typeof window !== 'undefined') {
+    void fonts.loadDefault();
+}
