@@ -12,41 +12,52 @@
 
     let pickerOpen = $state(false);
 
-    // Snapshot of active marks/attributes, refreshed on every transaction.
-    let snapshot = $state({
+    // Active marks/attributes of the current editor selection, refreshed on
+    // every transaction.
+    // `color` holds the per-token color OR null — the fallback to box.textColor
+    // happens in the $derived `swatchColor` below so the swatch reactively
+    // updates when the document default changes (not just on editor events).
+    let selection = $state({
         bold: false,
         italic: false,
-        color: '#000000',
+        color: null as string | null,
         size: 1,
         fontFamily: null as string | null,
     });
 
-    function refreshSnapshot() {
-        snapshot = {
+    function refreshSelection() {
+        selection = {
             bold: editor.isActive('bold'),
             italic: editor.isActive('italic'),
-            // Fall back to the doc-level default text color when the current
-            // selection has no per-token color set — so the swatch reflects
-            // what the text will actually render as.
-            color: editor.getAttributes('textStyle').color ?? box.textColor,
+            color: editor.getAttributes('textStyle').color ?? null,
             size: editor.getAttributes('textStyle').size ?? 1,
             fontFamily: editor.getAttributes('textStyle').fontFamily ?? null,
         };
     }
 
+    // Effective color shown in the swatch: per-token override if set, else the
+    // doc-level default from box. $derived so it reactively re-evaluates when
+    // box.textColor changes without needing an editor event.
+    const swatchColor = $derived(selection.color ?? box.textColor);
+    const hasPerTokenColor = $derived(selection.color !== null);
+
+    function clearColor() {
+        editor.chain().focus().unsetColor().run();
+    }
+
     $effect(() => {
-        refreshSnapshot();
-        editor.on('selectionUpdate', refreshSnapshot);
-        editor.on('transaction', refreshSnapshot);
+        refreshSelection();
+        editor.on('selectionUpdate', refreshSelection);
+        editor.on('transaction', refreshSelection);
         return () => {
-            editor.off('selectionUpdate', refreshSnapshot);
-            editor.off('transaction', refreshSnapshot);
+            editor.off('selectionUpdate', refreshSelection);
+            editor.off('transaction', refreshSelection);
         };
     });
 
     // The active font on the current selection — falls back to Geist (the
     // bundled default) when no fontFamily mark is set on the cursor.
-    const activeFamily = $derived(snapshot.fontFamily ?? 'Geist');
+    const activeFamily = $derived(selection.fontFamily ?? 'Geist');
     const supportsBold = $derived(fonts.supportsStyle(activeFamily, 'bold'));
     const supportsItalic = $derived(fonts.supportsStyle(activeFamily, 'italic'));
 
@@ -65,7 +76,7 @@
 
     // Size stepper — value displayed in input as e.g. "1.0". On commit, clamp + apply.
     let sizeInput = $state('1.0');
-    $effect(() => { sizeInput = formatSize(snapshot.size); });
+    $effect(() => { sizeInput = formatSize(selection.size); });
 
     function formatSize(n: number): string {
         return n.toFixed(1);
@@ -81,11 +92,11 @@
         const payload = rounded === 1 ? { size: null } : { size: rounded };
         editor.chain().focus().setMark('textStyle', payload).run();
     }
-    function stepUp() { applySize(snapshot.size + 0.1); }
-    function stepDown() { applySize(snapshot.size - 0.1); }
+    function stepUp() { applySize(selection.size + 0.1); }
+    function stepDown() { applySize(selection.size - 0.1); }
     function commitSizeInput() {
         const parsed = parseFloat(sizeInput);
-        if (Number.isNaN(parsed)) { sizeInput = formatSize(snapshot.size); return; }
+        if (Number.isNaN(parsed)) { sizeInput = formatSize(selection.size); return; }
         applySize(parsed);
     }
     function onSizeKeydown(e: KeyboardEvent) {
@@ -130,7 +141,7 @@
     <div class="group">
         <button
             class="btn"
-            class:on={snapshot.bold}
+            class:on={selection.bold}
             disabled={!supportsBold}
             onclick={toggleBold}
             onmousedown={keepEditorFocus}
@@ -138,7 +149,7 @@
         ><b>B</b></button>
         <button
             class="btn"
-            class:on={snapshot.italic}
+            class:on={selection.italic}
             disabled={!supportsItalic}
             onclick={toggleItalic}
             onmousedown={keepEditorFocus}
@@ -157,8 +168,17 @@
 
     <span class="sep"></span>
 
-    <div class="group">
-        <ColorPickerButton color={snapshot.color} onChange={setColor} />
+    <div class="group color-group">
+        <ColorPickerButton color={swatchColor} onChange={setColor} />
+        {#if hasPerTokenColor}
+            <button
+                class="btn clear-color"
+                onclick={clearColor}
+                onmousedown={keepEditorFocus}
+                title="Reset to default text color"
+                aria-label="Reset color"
+            >✕</button>
+        {/if}
     </div>
 
     <span class="sep"></span>
@@ -266,6 +286,15 @@
         cursor: not-allowed;
     }
     .btn:disabled:hover { background: transparent; }
+
+    /* Per-token color reset — small ✕ next to the color swatch, shown only
+       when the selection has an override to clear. */
+    .color-group { gap: 2px; }
+    .btn.clear-color {
+        min-width: 18px; height: 22px; padding: 0 4px;
+        font-size: 10px;
+        color: light-dark(var(--color-surface-500), var(--color-surface-400));
+    }
 
     /* Font group absorbs all leftover horizontal space; the button stretches to fill it. */
     .font-group { flex: 1; min-width: 0; }
