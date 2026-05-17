@@ -1,6 +1,6 @@
 import { fit } from '$lib/fitfull/fit.svelte';
 
-export async function downloadPng(filename = 'fitfull-headline.png', scale = 2) {
+export async function downloadPng(filename = 'fitfull-headline.png') {
     if (!fit.result) return;
     const svgBlob = new Blob([fit.result.svg], { type: 'image/svg+xml' });
     const svgUrl = URL.createObjectURL(svgBlob);
@@ -8,17 +8,15 @@ export async function downloadPng(filename = 'fitfull-headline.png', scale = 2) 
         const img = new Image();
         img.src = svgUrl;
         await img.decode();
-        // Use the SVG's natural dimensions (set by fitfull as the text's tight
-        // bounding box). Previously we sized to box.width/height, which forced
-        // a stretch when text didn't fill the box.
+        // Use the SVG's natural dimensions (set by fitfull). 1:1 scale matches
+        // the CLI which uses resvg's `fitTo: 'original'` — no upscaling.
         const w = img.naturalWidth || fit.result.width;
         const h = img.naturalHeight || fit.result.height;
         const canvas = document.createElement('canvas');
-        canvas.width = w * scale;
-        canvas.height = h * scale;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext('2d');
         if (!ctx) throw new Error('canvas 2d context unavailable');
-        ctx.scale(scale, scale);
         ctx.drawImage(img, 0, 0, w, h);
         await new Promise<void>((resolve, reject) => {
             canvas.toBlob((blob) => {
