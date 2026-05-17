@@ -5,8 +5,8 @@ type WrapMode = 'balanced' | 'greedy';
 type Align = 'left' | 'center' | 'right';
 
 class BoxState {
-    width = $state(460);
-    height = $state(140);
+    width = $state(500);
+    height = $state(300);
     wrap = $state<WrapMode>('balanced');
     align = $state<Align>('center');
     lineSpacing = $state(1.0);

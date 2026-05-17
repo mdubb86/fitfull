@@ -96,6 +96,7 @@
     /* Width (first dim number) right-aligned so " × height" stays glued to it.
        Height stays left-aligned so trailing slot space sits at group's right edge. */
     .num.dim:first-child { text-align: right; }
-    /* Aspect ratio right-aligned so " : 1" stays glued. */
-    .num.ratio { text-align: right; }
+    /* Right-aligned so the trailing " : 1" / "%" / "ms" stays anchored
+       to the value as the digit count changes. */
+    .num.ratio, .num.pct, .num.dur { text-align: right; }
 </style>
