@@ -1,6 +1,13 @@
 import { Fitfull, type FitResult } from 'fitfull/browser';
 import { box } from '$lib/state/box.svelte';
 import { doc } from '$lib/state/document.svelte';
+import { theme } from '$lib/state/theme.svelte';
+
+/** Default text color when a token doesn't carry its own. Matches the warm
+ *  near-black/near-white surface ramp in fitfull-console.css. */
+function defaultColor(): string {
+    return theme.mode === 'dark' ? '#f5f4f0' : '#0d0c0a';
+}
 
 /**
  * Reactive wrapper around fitfull's fit() pipeline. Singleton.
@@ -29,6 +36,7 @@ class FitState {
                 wrap: box.wrap,
                 align: box.align,
                 lineSpacing: box.lineSpacing,
+                color: defaultColor(),
             });
             this.result = res;
             this.durationMs = Math.round(performance.now() - t0);
@@ -57,11 +65,14 @@ class FitState {
 
 export const fit = new FitState();
 
-// Refit on token changes (doc.tokens flows from WYSIWYG or Tokens editor).
+// Refit on token changes (doc.tokens flows from WYSIWYG or Tokens editor)
+// AND on theme change — the default color depends on theme.mode, so a
+// theme flip needs to re-render so untinted text contrasts the new bg.
 // Module-scope effect — needs $effect.root so it isn't tied to a component.
 $effect.root(() => {
     $effect(() => {
-        doc.tokens;  // tracked dep
+        doc.tokens;   // tracked dep
+        theme.mode;   // tracked dep — re-fit when light/dark flips
         fit.scheduleFit();
     });
 });
