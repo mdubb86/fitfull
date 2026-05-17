@@ -10,11 +10,13 @@ import { doc } from '$lib/state/document.svelte';
 import { getCatalog, type FontFamily } from '$lib/fonts/catalog';
 import type { FontWeight } from 'fitfull';
 
-// Bundled default font (Geist) — already exposed as @font-face by the
-// @fontsource/geist CSS imports in app.css, so we only need to hand the
-// bytes to fitfull. ?url returns the asset URL Vite resolves to the file.
+// Bundled default fonts — already exposed as @font-face by the @fontsource
+// CSS imports in app.css, so we only need to hand the bytes to fitfull.
+// ?url returns the asset URL Vite resolves to the file.
 import geistRegularUrl from '@fontsource/geist/files/geist-latin-400-normal.woff2?url';
 import geistBoldUrl from '@fontsource/geist/files/geist-latin-700-normal.woff2?url';
+import playfairRegularUrl from '@fontsource/playfair-display/files/playfair-display-latin-400-normal.woff2?url';
+import playfairItalicUrl from '@fontsource/playfair-display/files/playfair-display-latin-400-italic.woff2?url';
 
 export type LoadStatus = 'loading' | 'loaded' | 'error';
 
@@ -120,38 +122,42 @@ class FontRegistry {
     }
 
     /**
-     * Load the bundled default font (Geist 400 + 700) and register with fitfull
-     * so the canvas renders text on first load. Skips injectFontFace because
-     * @fontsource/geist already provides @font-face via app.css imports.
-     * Doesn't go through loadFamily because Geist isn't in the Google catalog.
+     * Load the bundled default fonts (Geist + Playfair Display) and register
+     * with fitfull so the canvas renders the default doc on first load.
+     * Skips injectFontFace because @fontsource CSS imports already provide
+     * @font-face via app.css. Doesn't go through loadFamily because these
+     * are bundled rather than fetched from Google Fonts.
      */
     async loadDefault(): Promise<void> {
-        const family = 'Geist';
-        const targets: Array<{ weight: FontWeight; url: string }> = [
-            { weight: 'regular', url: geistRegularUrl },
-            { weight: 'bold', url: geistBoldUrl },
+        const defaults: Array<{ family: string; weight: FontWeight; url: string }> = [
+            { family: 'Geist',            weight: 'regular', url: geistRegularUrl },
+            { family: 'Geist',            weight: 'bold',    url: geistBoldUrl },
+            { family: 'Playfair Display', weight: 'regular', url: playfairRegularUrl },
+            { family: 'Playfair Display', weight: 'italic',  url: playfairItalicUrl },
         ];
 
-        let entry = this.entries.get(family);
-        if (!entry) {
-            entry = { family, weights: new Map() };
-            this.entries.set(family, entry);
-        }
-        for (const { weight } of targets) {
+        // Pre-mark all as loading so the inventory shows them immediately.
+        for (const { family, weight } of defaults) {
+            let entry = this.entries.get(family);
+            if (!entry) {
+                entry = { family, weights: new Map() };
+                this.entries.set(family, entry);
+            }
             if (!entry.weights.has(weight)) entry.weights.set(weight, { status: 'loading' });
         }
         this.entries = new Map(this.entries);
 
         await Promise.all(
-            targets.map(async ({ weight, url }) => {
+            defaults.map(async ({ family, weight, url }) => {
+                const entry = this.entries.get(family)!;
                 try {
                     const res = await fetch(url);
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     const bytes = await res.arrayBuffer();
                     fit.registerFont(family, weight, bytes);
-                    entry!.weights.set(weight, { status: 'loaded' });
+                    entry.weights.set(weight, { status: 'loaded' });
                 } catch (e) {
-                    entry!.weights.set(weight, { status: 'error', error: (e as Error).message });
+                    entry.weights.set(weight, { status: 'error', error: (e as Error).message });
                 }
             }),
         );

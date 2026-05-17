@@ -39,6 +39,7 @@
     "devDependencies": {
         "@fontsource/geist": "latest",
         "@fontsource/geist-mono": "latest",
+        "@fontsource/playfair-display": "^5.2.8",
         "@skeletonlabs/skeleton": "^4.0.0",
         "@skeletonlabs/skeleton-svelte": "^4.15.0",
         "@sveltejs/adapter-static": "^3.0.10",

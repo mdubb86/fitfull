@@ -1,16 +1,31 @@
 import { pmJsonToTokens, tokensToPmJson } from '$lib/tokens/mapping';
 import type { Token } from 'fitfull';
 
+// Starter doc — shows off mixed fonts + size emphasis right on first load.
+// "type" is Playfair Display italic (serif contrast against Geist sans).
+// "fits." is bold + 1.5× to demonstrate per-run size scaling.
 const DEFAULT_DOC = {
     type: 'doc',
     content: [{
         type: 'paragraph',
         content: [
-            { type: 'text', text: 'Ship type that ' },
+            { type: 'text', text: 'Ship ' },
+            {
+                type: 'text',
+                text: 'type',
+                marks: [
+                    { type: 'italic' },
+                    { type: 'textStyle', attrs: { fontFamily: 'Playfair Display' } },
+                ],
+            },
+            { type: 'text', text: ' that ' },
             {
                 type: 'text',
                 text: 'fits.',
-                marks: [{ type: 'bold' }],
+                marks: [
+                    { type: 'bold' },
+                    { type: 'textStyle', attrs: { size: 1.5 } },
+                ],
             },
         ],
     }],

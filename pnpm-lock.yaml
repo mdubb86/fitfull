@@ -136,6 +136,9 @@ importers:
       '@fontsource/geist-mono':
         specifier: latest
         version: 5.2.7
+      '@fontsource/playfair-display':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@skeletonlabs/skeleton':
         specifier: ^4.0.0
         version: 4.15.2(tailwindcss@4.3.0)
@@ -387,6 +390,9 @@ packages:
 
   '@fontsource/geist@5.2.8':
     resolution: {integrity: sha512-pI54klK6vz8fVpAVyV+iODGLEzw73cs1XJqV9PIXgW8MYMmBcwK6lKKaWqJrNHwEx8ppz9cuhussb6arXQ/PVQ==}
+
+  '@fontsource/playfair-display@5.2.8':
+    resolution: {integrity: sha512-fUEhib70SszNhQVsGbUMSsWJhr7Je0rdeuZdtGpDNu0GKF1xJM8QhpI/y0pckU25GcChXm9TLOmeZupkvvZo2g==}
 
   '@internationalized/date@3.12.0':
     resolution: {integrity: sha512-/PyIMzK29jtXaGU23qTvNZxvBXRtKbNnGDFD+PY6CZw/Y8Ex8pFUzkuCJCG9aOqmShjqhS9mPqP6Dk5onQY8rQ==}
@@ -2094,6 +2100,8 @@ snapshots:
   '@fontsource/geist-mono@5.2.7': {}
 
   '@fontsource/geist@5.2.8': {}
+
+  '@fontsource/playfair-display@5.2.8': {}
 
   '@internationalized/date@3.12.0':
     dependencies:
