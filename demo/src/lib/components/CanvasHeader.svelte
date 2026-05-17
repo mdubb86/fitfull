@@ -1,7 +1,10 @@
 <script lang="ts">
     import { fit } from '$lib/fitfull/fit.svelte';
+    import { downloadSvg } from '$lib/exports/svg';
+    import { downloadPng } from '$lib/exports/png';
 
     const state = $derived(fit.state);
+    const canExport = $derived(fit.result !== null);
 </script>
 
 <div class="canvas-header">
@@ -10,11 +13,11 @@
         <span>{state}</span>
     </span>
     <div class="actions">
-        <button class="btn-action">
+        <button class="btn-action" onclick={() => downloadSvg()} disabled={!canExport}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             .svg
         </button>
-        <button class="btn-action">
+        <button class="btn-action" onclick={() => downloadPng()} disabled={!canExport}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             .png
         </button>
@@ -82,9 +85,13 @@
         cursor: pointer;
         transition: background 120ms, border-color 120ms;
     }
-    .btn-action:hover {
+    .btn-action:hover:not(:disabled) {
         background: light-dark(var(--color-surface-200), var(--color-surface-800));
         border-color: light-dark(var(--color-surface-300), var(--color-surface-700));
+    }
+    .btn-action:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
     .btn-action svg {
         color: light-dark(var(--color-surface-600), var(--color-surface-400));
