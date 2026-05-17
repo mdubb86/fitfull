@@ -29,7 +29,7 @@
     .stats-bar {
         display: flex; align-items: center;
         padding: 0 18px;
-        height: 48px;
+        min-height: 48px;
         background: light-dark(var(--color-surface-50), var(--color-surface-950));
         border-top: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
         font-family: 'Geist Mono', monospace;
@@ -51,6 +51,18 @@
         border-radius: 999px;
     }
     .metrics::-webkit-scrollbar-track { background: transparent; }
+
+    /* Mobile: wrap to multiple rows instead of horizontal scroll. */
+    @media (max-width: 600px) {
+        .stats-bar { padding: 8px 14px; }
+        .metrics {
+            flex-wrap: wrap;
+            justify-content: center;
+            row-gap: 6px;
+            column-gap: 14px;
+            overflow-x: visible;
+        }
+    }
 
     .grp {
         display: flex; align-items: center; gap: 6px;

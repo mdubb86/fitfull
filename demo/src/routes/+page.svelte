@@ -48,10 +48,9 @@
     }
     .center {
         display: grid;
-        /* Explicit 48px rows for the header + stats bars (matching their fixed
-           internal heights). `auto` was sometimes resolving to 0 on mobile —
-           the StatsBar disappeared entirely. */
-        grid-template-rows: 48px minmax(0, 1fr) 48px;
+        /* Explicit 48px for the header; stats row is auto so it can grow to
+           multi-line on narrow viewports where metrics wrap. */
+        grid-template-rows: 48px minmax(0, 1fr) auto;
         min-height: 0; min-width: 0;
     }
     /* Mobile (sheets are full-viewport modals): hide pull-tabs whenever any
