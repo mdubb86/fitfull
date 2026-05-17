@@ -7,6 +7,7 @@ import { Fitfull } from './index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FONTS_DIR = join(__dirname, '..', 'fonts');
 const INTER_REGULAR = join(FONTS_DIR, 'Inter-Regular.ttf');
+const INTER_BOLD = join(FONTS_DIR, 'Inter-Bold.ttf');
 
 describe('Fitfull', () => {
     test('fit with text input returns svg and layout', async () => {
@@ -247,5 +248,32 @@ describe('Fitfull', () => {
             }),
             /Invalid .* color/
         );
+    });
+
+    test('regression: 2-line strategy must not return an arrangement whose layout overflows height', async () => {
+        const ff = Fitfull.create();
+        const tokens = [
+            { text: 'Ship', size: 1,   font: INTER_REGULAR, weight: 'regular' as const },
+            { text: ' ',    size: 1,   font: INTER_REGULAR, weight: 'regular' as const },
+            { text: 'type', size: 1,   font: INTER_REGULAR, weight: 'regular' as const },
+            { text: ' ',    size: 1,   font: INTER_REGULAR, weight: 'regular' as const },
+            { text: 'that', size: 1,   font: INTER_REGULAR, weight: 'regular' as const },
+            { text: ' ',    size: 1,   font: INTER_REGULAR, weight: 'regular' as const },
+            { text: 'fits', size: 1.9, font: INTER_BOLD,    weight: 'bold'    as const },
+            { text: '.',    size: 1,   font: INTER_BOLD,    weight: 'bold'    as const },
+        ];
+
+        // Currently throws: "Output height 202 exceeds constraint 140 at scale=70.575"
+        // A 1-line fit exists (~460×72) so auto-line-count must not error here.
+        const result = await ff.fit({
+            tokens,
+            width: 460,
+            height: 140,
+            wrap: 'balanced',
+            align: 'center',
+        });
+
+        assert.ok(result.height <= 140 + 0.01, `height ${result.height} > 140`);
+        assert.ok(result.width  <= 460 + 0.01, `width  ${result.width}  > 460`);
     });
 });

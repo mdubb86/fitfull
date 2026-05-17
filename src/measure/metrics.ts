@@ -2,39 +2,18 @@ import type { Font } from 'fontkit';
 import type { Token, TokenMetrics, LineMetrics, ArrangementMetrics } from '../types.js';
 import type { FontProvider } from '../fonts/index.js';
 import { getFontMetrics } from '../fonts/index.js';
+import { computeVerticalLayout } from './layout.js';
 
 /**
- * Calculate total height for lines.
- * Uses tight visual height for fitting calculations.
- * Line spacing multiplier applies to baseline-to-baseline distance (font metrics).
+ * Calculate total visual height for a sequence of lines.
+ * Delegates to computeVerticalLayout so the fitter's height check and the post-hoc
+ * positioned-layout height stay in lockstep.
  */
 export function calculateTotalHeight(
-    lines: Array<{ height: number; ascent: number; descent: number; tightTop: number; tightBottom: number }>,
+    lines: Array<{ ascent: number; descent: number; tightTop: number; tightBottom: number }>,
     lineSpacing: number
 ): number {
-    if (lines.length === 0) return 0;
-
-    // For single line, just use tight height
-    if (lines.length === 1) {
-        return lines[0].height;
-    }
-
-    // For multi-line: compute span from first line's visual top to last line's visual bottom.
-    // tightTop/tightBottom are relative to each line's baseline.
-    // Baselines are spaced by (ascent - descent) * lineSpacing.
-    const firstLine = lines[0];
-    const lastLine = lines[lines.length - 1];
-
-    // Accumulate baseline offset of last line
-    let lastBaseline = 0;
-    for (let i = 1; i < lines.length; i++) {
-        const prevLine = lines[i - 1];
-        lastBaseline += (prevLine.ascent - prevLine.descent) * lineSpacing;
-    }
-
-    // Total = from first line's visual top to last line's visual bottom
-    // firstLine.tightTop is negative (above baseline), lastLine.tightBottom is positive (below baseline)
-    return (lastBaseline + lastLine.tightBottom) - firstLine.tightTop;
+    return computeVerticalLayout(lines, lineSpacing).height;
 }
 
 /**

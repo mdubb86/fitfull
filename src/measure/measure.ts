@@ -41,6 +41,8 @@ export function measureLine(tokens: Token[], fonts: FontProvider): MeasuredLine 
             baseline: 0,
             ascent: 0,
             descent: 0,
+            tightTop: 0,
+            tightBottom: 0,
             tightBbox: { x1: 0, y1: 0, x2: 0, y2: 0, width: 0, height: 0 },
         };
     }
@@ -118,6 +120,8 @@ export function measureLine(tokens: Token[], fonts: FontProvider): MeasuredLine 
         baseline,
         ascent: maxAscent,
         descent: minDescent,
+        tightTop: tightBbox.y1 - baseline,
+        tightBottom: tightBbox.y2 - baseline,
         tightBbox,
     };
 }
