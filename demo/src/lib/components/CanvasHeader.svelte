@@ -1,11 +1,31 @@
 <script lang="ts">
+    import * as menu from '@zag-js/menu';
+    import { normalizeProps, useMachine } from '@zag-js/svelte';
     import { fit } from '$lib/fitfull/fit.svelte';
     import { downloadSvg } from '$lib/exports/svg';
     import { downloadPng } from '$lib/exports/png';
     import { buildShareUrl } from '$lib/state/url-hash.svelte';
+    import { portalToBody } from '$lib/actions/portal';
 
     const fitState = $derived(fit.state);
     const canExport = $derived(fit.result !== null);
+
+    // Natural PNG dims = the SVG's natural size, which equals the fitted text
+    // bbox (round here so the menu shows clean integers).
+    const naturalW = $derived(Math.round(fit.result?.width ?? 0));
+    const naturalH = $derived(Math.round(fit.result?.height ?? 0));
+    const pngScales = [1, 2, 3];
+
+    const pngMenuId = $props.id();
+    const pngMenuService = useMachine(menu.machine, () => ({
+        id: pngMenuId,
+        positioning: { placement: 'bottom-end' as const, gutter: 4 },
+        onSelect: (details: { value: string }) => {
+            const scale = parseInt(details.value, 10);
+            if (Number.isFinite(scale) && scale > 0) downloadPng(undefined, scale);
+        },
+    }));
+    const pngMenuApi = $derived(menu.connect(pngMenuService, normalizeProps));
 
     let copiedFlash = $state(false);
     let copiedTimer: ReturnType<typeof setTimeout> | null = null;
@@ -42,10 +62,25 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             .svg
         </button>
-        <button class="btn-action" onclick={() => downloadPng()} disabled={!canExport}>
+        <button {...pngMenuApi.getTriggerProps()} class="btn-action" disabled={!canExport}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             .png
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
+    </div>
+</div>
+
+<div use:portalToBody {...pngMenuApi.getPositionerProps()} class="png-menu-positioner">
+    <div {...pngMenuApi.getContentProps()} class="png-menu-content">
+        {#each pngScales as s (s)}
+            <div
+                {...pngMenuApi.getItemProps({ value: String(s) })}
+                class="png-menu-item"
+            >
+                <span class="scale">{s}×</span>
+                <span class="dims">{naturalW * s} × {naturalH * s}</span>
+            </div>
+        {/each}
     </div>
 </div>
 
@@ -120,5 +155,36 @@
     }
     .btn-action svg {
         color: light-dark(var(--color-surface-600), var(--color-surface-400));
+    }
+
+    /* PNG scale menu — Zag dropdown listing 1×/2×/3× with output dims. */
+    .png-menu-positioner { --z-index: 1000; }
+    .png-menu-content {
+        background: light-dark(var(--color-surface-50), var(--color-surface-900));
+        border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        color: light-dark(var(--color-surface-950), var(--color-surface-50));
+        border-radius: 6px;
+        padding: 4px;
+        min-width: 140px;
+        box-shadow: 0 10px 30px -8px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.25);
+        font-family: 'Geist', sans-serif;
+        font-size: 12px;
+    }
+    .png-menu-content:focus { outline: none; }
+    .png-menu-item {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        color: light-dark(var(--color-surface-700), var(--color-surface-200));
+    }
+    .png-menu-item[data-highlighted] {
+        background: light-dark(var(--color-surface-100), var(--color-surface-800));
+        color: light-dark(var(--color-surface-950), white);
+    }
+    .png-menu-item .scale { font-weight: 500; }
+    .png-menu-item .dims {
+        font-family: 'Geist Mono', monospace; font-size: 11px;
+        color: light-dark(var(--color-surface-500), var(--color-surface-500));
     }
 </style>
