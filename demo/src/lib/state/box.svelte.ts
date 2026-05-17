@@ -20,8 +20,8 @@ class BoxState {
     }
 
     setDims(w: number, h: number) {
-        this.width = Math.max(80, Math.min(3840, Math.round(w)));
-        this.height = Math.max(40, Math.min(2160, Math.round(h)));
+        this.width = Math.max(16, Math.min(7680, Math.round(w)));
+        this.height = Math.max(16, Math.min(7680, Math.round(h)));
     }
 }
 

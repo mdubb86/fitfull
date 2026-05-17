@@ -5,7 +5,9 @@
     import ColorPickerButton from './ColorPickerButton.svelte';
 
     function onDimInput() {
-        // bind:value already updated box.width/box.height; trigger a debounced fit.
+        // bind:value wrote the raw input straight to box.width/box.height —
+        // clamp via setDims (16 min, 7680 max) before scheduling a fit.
+        box.setDims(box.width, box.height);
         fit.scheduleFit(180);
     }
 
@@ -50,12 +52,12 @@
                 <div class="numpair">
                     <label class="numinput">
                         <span class="lbl-mini">W</span>
-                        <input type="number" bind:value={box.width} oninput={onDimInput} />
+                        <input type="number" min="16" max="7680" bind:value={box.width} oninput={onDimInput} />
                         <span class="suffix">px</span>
                     </label>
                     <label class="numinput">
                         <span class="lbl-mini">H</span>
-                        <input type="number" bind:value={box.height} oninput={onDimInput} />
+                        <input type="number" min="16" max="7680" bind:value={box.height} oninput={onDimInput} />
                         <span class="suffix">px</span>
                     </label>
                 </div>
