@@ -32,7 +32,9 @@
     .app {
         display: grid;
         grid-template-rows: 48px 1fr;
-        height: 100vh;
+        /* 100dvh respects mobile browser chrome (address bar / bottom nav).
+           100vh would push the StatsBar off-screen below the visible area. */
+        height: 100dvh;
         width: 100vw;
         overflow: hidden;
         background: light-dark(var(--color-surface-50), var(--color-surface-950));
