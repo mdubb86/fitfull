@@ -1,4 +1,6 @@
 <script lang="ts">
+    import * as slider from '@zag-js/slider';
+    import { normalizeProps, useMachine } from '@zag-js/svelte';
     import { box } from '$lib/state/box.svelte';
     import { fit } from '$lib/fitfull/fit.svelte';
     import { ui } from '$lib/state/ui.svelte';
@@ -27,6 +29,22 @@
     function resetTextColor()           { box.textColor = '#000000'; }
     function setBgColor(hex: string)   { box.bgColor = hex; }
     function resetBgColor()             { box.bgColor = null; }
+
+    // Min/max lines as a two-thumb range slider (1..10).
+    const linesSliderId = $props.id();
+    const linesService = useMachine(slider.machine, () => ({
+        id: linesSliderId,
+        min: 1,
+        max: 10,
+        step: 1,
+        value: [box.minLines, box.maxLines],
+        onValueChange: (d: { value: number[] }) => {
+            box.minLines = d.value[0];
+            box.maxLines = d.value[1];
+        },
+        onValueChangeEnd: () => fit.scheduleFit(0),
+    }));
+    const linesApi = $derived(slider.connect(linesService, normalizeProps));
 </script>
 
 <aside class="sheet sheet-right" class:collapsed={ui.rightCollapsed}>
@@ -108,6 +126,24 @@
                         <span class="val">{box.lineSpacing.toFixed(1)}×</span>
                     </div>
                     <input class="slider" type="range" min="0.8" max="1.5" step="0.05" bind:value={box.lineSpacing} onchange={onSpacingChange} />
+                </div>
+                <div class="field">
+                    <div class="field-head">
+                        <span class="lbl">Lines</span>
+                        <span class="val">{box.minLines}–{box.maxLines}</span>
+                    </div>
+                    <div {...linesApi.getRootProps()} class="lines-slider">
+                        <div {...linesApi.getControlProps()} class="lines-track-wrap">
+                            <div {...linesApi.getTrackProps()} class="lines-track">
+                                <div {...linesApi.getRangeProps()} class="lines-range"></div>
+                            </div>
+                            {#each linesApi.value as _, i (i)}
+                                <div {...linesApi.getThumbProps({ index: i })} class="lines-thumb">
+                                    <input {...linesApi.getHiddenInputProps({ index: i })} />
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -293,6 +329,40 @@
     .slider {
         width: 100%;
         accent-color: var(--color-brand);
+    }
+
+    /* Two-thumb lines slider (min..max). Same visual language as the native
+       line-spacing slider above, but with a filled "selected" sub-range. */
+    .lines-slider { padding: 4px 0; }
+    .lines-track-wrap {
+        position: relative;
+        height: 18px;
+        display: flex; align-items: center;
+    }
+    .lines-track {
+        position: relative;
+        width: 100%; height: 4px;
+        background: light-dark(var(--color-surface-200), var(--color-surface-800));
+        border-radius: 999px;
+    }
+    .lines-range {
+        position: absolute;
+        height: 100%;
+        background: var(--color-brand);
+        border-radius: 999px;
+    }
+    .lines-thumb {
+        width: 14px; height: 14px;
+        background: light-dark(white, var(--color-surface-100));
+        border: 2px solid var(--color-brand);
+        border-radius: 50%;
+        cursor: grab;
+        touch-action: none;
+    }
+    .lines-thumb:active { cursor: grabbing; }
+    .lines-thumb:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brand) 30%, transparent);
     }
     .color-field .field-head { margin-bottom: 6px; }
     .reset-color {

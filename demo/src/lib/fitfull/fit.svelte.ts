@@ -40,6 +40,8 @@ class FitState {
                 wrap: box.wrap,
                 align: box.align,
                 lineSpacing: box.lineSpacing,
+                minLines: box.minLines,
+                maxLines: box.maxLines,
                 color: box.textColor,
             };
             // Only pass `background` when explicitly set — otherwise fitfull
