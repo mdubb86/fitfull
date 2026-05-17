@@ -6,7 +6,7 @@
 
     /** Visual scale: visual W = logical W * displayScale. */
     let displayScale = $state(1);
-    /** Drag state — captured at mousedown, prevents in-drag zoom-in. */
+    /** Drag state — captured at pointerdown, prevents in-drag zoom-in. */
     let isDragging = $state(false);
     let dragStartScale = 1;
 
@@ -36,7 +36,7 @@
         return () => ro.disconnect();
     });
 
-    function startDrag(e: MouseEvent, dir: string) {
+    function startDrag(e: PointerEvent, dir: string) {
         e.preventDefault();
         const startScale = displayScale;
         dragStartScale = startScale;
@@ -44,10 +44,16 @@
         const sx = e.clientX, sy = e.clientY;
         const sw = box.width, sh = box.height;
         const shift = e.shiftKey;
+        const pointerId = e.pointerId;
         const target = e.currentTarget as HTMLDivElement;
         target.classList.add('active');
+        // Capture the pointer so move/up keep tracking even if the finger/cursor
+        // leaves the small handle hit-target (essential on touch where the
+        // finger easily strays off the 12px handle).
+        try { target.setPointerCapture(pointerId); } catch {}
 
-        function move(ev: MouseEvent) {
+        function move(ev: PointerEvent) {
+            if (ev.pointerId !== pointerId) return;
             if (fit.state !== 'resizing') fit.state = 'resizing';
             // dx/dy in LOGICAL pixels — divided by startScale (NOT live scale,
             // which changes during drag and would compound into runaway).
@@ -66,16 +72,20 @@
             }
             box.setDims(nw, nh);
         }
-        function up() {
+        function up(ev: PointerEvent) {
+            if (ev.pointerId !== pointerId) return;
             target.classList.remove('active');
-            window.removeEventListener('mousemove', move);
-            window.removeEventListener('mouseup', up);
+            try { target.releasePointerCapture(pointerId); } catch {}
+            window.removeEventListener('pointermove', move);
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', up);
             isDragging = false;
             recomputeScale();  // snap — lifts the dragStartScale cap, animates via CSS transition
             fit.scheduleFit(0);  // commit on release, no debounce
         }
-        window.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', up);
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
     }
 
     const handleDirs = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const;
@@ -116,7 +126,7 @@
             </div>
             {#each handleDirs as dir}
                 <div class="handle handle-{dir}"
-                     onmousedown={(e) => startDrag(e, dir)}
+                     onpointerdown={(e) => startDrag(e, dir)}
                      role="button"
                      tabindex="-1"
                      aria-label="Resize {dir}"></div>
@@ -193,6 +203,18 @@
         border: 1.5px solid var(--color-brand);
         border-radius: 2px;
         z-index: 5;
+        /* Prevent the browser from interpreting touch drags as scroll/zoom
+           while resizing on mobile. Pointer events handle the gesture. */
+        touch-action: none;
+    }
+    /* On touch screens the 10px handle is too small to hit reliably. Expand
+       the hit area without changing the visual size via a transparent pad. */
+    @media (pointer: coarse) {
+        .handle::after {
+            content: '';
+            position: absolute;
+            inset: -10px;
+        }
     }
     .handle:hover {
         box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-brand) 25%, transparent);
