@@ -8,7 +8,11 @@
 <aside class="sheet sheet-left" class:collapsed={ui.leftCollapsed}>
     <div class="sheet-head">
         <span class="sheet-title">Input</span>
-        <button class="sheet-toggle" onclick={() => ui.setLeftCollapsed(true)} title="Hide input sheet">‹</button>
+        <button class="sheet-toggle" onclick={() => ui.setLeftCollapsed(true)} title="Hide input sheet" aria-label="Hide input sheet">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="8.5 3 4.5 7 8.5 11"/>
+            </svg>
+        </button>
     </div>
     <div class="sheet-body">
         <div class="tab-toggle">
@@ -65,16 +69,26 @@
         color: light-dark(var(--color-surface-700), var(--color-surface-300));
     }
     .sheet-toggle {
-        width: 22px; height: 22px;
+        width: 30px; height: 28px;
         display: grid; place-items: center;
-        border-radius: 4px; border: none;
-        background: transparent;
-        color: light-dark(var(--color-surface-500), var(--color-surface-400));
-        font-size: 14px; cursor: pointer;
+        border-radius: 6px;
+        background: light-dark(var(--color-surface-100), var(--color-surface-900));
+        border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        color: light-dark(var(--color-surface-600), var(--color-surface-300));
+        cursor: pointer;
+        transition: background 120ms, border-color 120ms, color 120ms;
     }
     .sheet-toggle:hover {
-        color: light-dark(var(--color-surface-950), var(--color-surface-100));
-        background: light-dark(var(--color-surface-100), var(--color-surface-900));
+        color: var(--color-brand);
+        background: light-dark(var(--color-surface-200), var(--color-surface-800));
+        border-color: light-dark(var(--color-surface-300), var(--color-surface-700));
+    }
+    .sheet-toggle:active {
+        background: light-dark(var(--color-surface-300), var(--color-surface-700));
+    }
+    .sheet-toggle:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brand) 30%, transparent);
     }
     .sheet-body { overflow-y: auto; min-height: 0; }
     .tab-toggle {

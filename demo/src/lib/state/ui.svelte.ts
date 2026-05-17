@@ -14,6 +14,13 @@ import { persistedString } from './local-storage.svelte';
 const LEFT_OPEN_MIN = 1280;
 const RIGHT_OPEN_MIN = 1024;
 
+/**
+ * Below this width the two sheets would overlap if both were open, so opening
+ * one auto-closes the other. Matches `RIGHT_OPEN_MIN` — the same threshold
+ * below which the right sheet is collapsed by default.
+ */
+const MUTEX_BELOW = 1024;
+
 class UIState {
     activeTab = $state<'wysiwyg' | 'tokens'>('wysiwyg');
 
@@ -37,10 +44,18 @@ class UIState {
     setLeftCollapsed(value: boolean, byUser = true) {
         this._leftCollapsed.value = value ? 'collapsed' : 'open';
         if (byUser) this._leftToggledByUser.value = 'true';
+        // Narrow viewport: opening one sheet auto-closes the other so they
+        // don't overlap. System-driven close — don't sticky the user-toggle flag.
+        if (byUser && !value && typeof window !== 'undefined' && window.innerWidth < MUTEX_BELOW) {
+            this.setRightCollapsed(true, false);
+        }
     }
     setRightCollapsed(value: boolean, byUser = true) {
         this._rightCollapsed.value = value ? 'collapsed' : 'open';
         if (byUser) this._rightToggledByUser.value = 'true';
+        if (byUser && !value && typeof window !== 'undefined' && window.innerWidth < MUTEX_BELOW) {
+            this.setLeftCollapsed(true, false);
+        }
     }
 
     /**
