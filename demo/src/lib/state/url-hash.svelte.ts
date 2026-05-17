@@ -72,6 +72,14 @@ function decode(hash: string): SharedState | null {
 }
 
 function snapshot(): SharedState {
+    // Union of registered fonts AND any fonts referenced by doc tokens. The
+    // doc can carry a font reference (e.g. via the Tokens editor) without
+    // the family ever being added to the inventory — without this, the
+    // receiver wouldn't know to load it and the canvas would stay blank.
+    const fontNames = new Set<string>(fonts.families());
+    for (const tok of doc.tokens) {
+        if (tok.font) fontNames.add(tok.font);
+    }
     return {
         v: 1,
         doc: doc.pmJson,
@@ -82,7 +90,7 @@ function snapshot(): SharedState {
             align: box.align,
             ls: box.lineSpacing,
         },
-        fonts: fonts.families(),
+        fonts: [...fontNames],
     };
 }
 
@@ -109,8 +117,15 @@ export async function applyHashFromUrl(): Promise<void> {
     const state = decode(raw);
 
     // Always clear the hash once we've consumed (or attempted to consume) it,
-    // so a stale/garbled hash doesn't linger in the URL bar either.
-    history.replaceState(null, '', window.location.pathname + window.location.search);
+    // so a stale/garbled hash doesn't linger in the URL bar either. Use the
+    // raw History API rather than $app/navigation — SvelteKit's replaceState
+    // requires the navigation context, and we're only stripping the hash, not
+    // navigating. The warning about pushState/replaceState conflicts doesn't
+    // apply for hash-only edits.
+    if (window.location.hash) {
+        const cleanUrl = window.location.pathname + window.location.search;
+        window.history.replaceState(window.history.state, '', cleanUrl);
+    }
 
     if (!state) return;
 
