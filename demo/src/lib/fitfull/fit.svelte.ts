@@ -17,6 +17,12 @@ function defaultColor(): string {
 class FitState {
     /** Last successful FitResult. Null on first run and on fitfull errors. */
     result = $state<FitResult | null>(null);
+    /** Box dims used for the last successful fit. Needed for occupancy
+     *  calculation — consumers must NOT use live box.width/height because
+     *  those change while dragging before fitfull re-runs, producing a
+     *  jittery ratio against stale text dims. */
+    fitBoxW = $state(0);
+    fitBoxH = $state(0);
     state = $state<'fit' | 'resizing' | 'fitting'>('fit');
     durationMs = $state(0);
     error = $state<string | null>(null);
@@ -29,16 +35,22 @@ class FitState {
         this.error = null;
         const t0 = performance.now();
         try {
+            // Snapshot box dims for the occupancy calc — must match the dims
+            // fitfull used for THIS run, not the live box state.
+            const w = box.width;
+            const h = box.height;
             const res = await this.ff.fit({
                 tokens: doc.tokens,
-                width: box.width,
-                height: box.height,
+                width: w,
+                height: h,
                 wrap: box.wrap,
                 align: box.align,
                 lineSpacing: box.lineSpacing,
                 color: defaultColor(),
             });
             this.result = res;
+            this.fitBoxW = w;
+            this.fitBoxH = h;
             this.durationMs = Math.round(performance.now() - t0);
             this.state = 'fit';
         } catch (e) {
