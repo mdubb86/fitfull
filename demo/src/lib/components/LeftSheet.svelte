@@ -8,7 +8,7 @@
 <aside class="sheet sheet-left" class:collapsed={ui.leftCollapsed}>
     <div class="sheet-head">
         <span class="sheet-title">Input</span>
-        <button class="sheet-toggle" onclick={() => ui.leftCollapsed = true} title="Hide input sheet">‹</button>
+        <button class="sheet-toggle" onclick={() => ui.setLeftCollapsed(true)} title="Hide input sheet">‹</button>
     </div>
     <div class="sheet-body">
         <div class="tab-toggle">

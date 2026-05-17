@@ -24,7 +24,7 @@
 <aside class="sheet sheet-right" class:collapsed={ui.rightCollapsed}>
     <div class="sheet-head">
         <span class="sheet-title">Settings</span>
-        <button class="sheet-toggle" onclick={() => ui.rightCollapsed = true} title="Hide settings sheet">›</button>
+        <button class="sheet-toggle" onclick={() => ui.setRightCollapsed(true)} title="Hide settings sheet">›</button>
     </div>
     <div class="sheet-body">
         <!-- Dimensions -->

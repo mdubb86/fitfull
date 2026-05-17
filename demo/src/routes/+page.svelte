@@ -14,7 +14,7 @@
     <main>
         <LeftSheet />
         {#if ui.leftCollapsed}
-            <SheetPullTab side="left" onClick={() => ui.leftCollapsed = false} />
+            <SheetPullTab side="left" onClick={() => ui.setLeftCollapsed(false)} />
         {/if}
         <section class="center">
             <CanvasHeader />
@@ -23,7 +23,7 @@
         </section>
         <RightSheet />
         {#if ui.rightCollapsed}
-            <SheetPullTab side="right" onClick={() => ui.rightCollapsed = false} />
+            <SheetPullTab side="right" onClick={() => ui.setRightCollapsed(false)} />
         {/if}
     </main>
 </div>
