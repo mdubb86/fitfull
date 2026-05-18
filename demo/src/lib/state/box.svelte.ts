@@ -9,7 +9,7 @@ class BoxState {
     height = $state(300);
     wrap = $state<WrapMode>('balanced');
     align = $state<Align>('center');
-    lineSpacing = $state(1.0);
+    lineSpacing = $state(0.8);
     /** Bounds on arrangements fitfull tries. Without an upper cap, long
      *  inputs blow up the search and hit the timeout. Range 1-10 covers
      *  realistic headline cases; users can pin a tighter band (e.g. 2-3
