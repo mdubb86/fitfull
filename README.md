@@ -4,11 +4,11 @@
 
 Fit text into a fixed-size box and output SVG or PNG.
 
-Producing an image with variable-length text is fiddlier than it sounds. You
-pick a font size that fills the space without overflowing, decide where lines
-break, and produce something that renders identically across machines and
-runtimes. fitfull does all three. Useful for OG images, social cards, name
-badges, certificates — anywhere the text length varies but the output
+Filling a box with text is trickier than it sounds. You bring the text, fonts,
+and styles and fitfull makes it fully fit. Useful for dynamically filling a
+space in a generative layout — social share previews, email banners with
+personalization, conference badges, certificates, event tickets, podcast and
+video thumbnails, quote cards — anywhere the text length varies but the output
 dimensions don't. Runs in Node (CLI, library, standalone binary) and in the
 browser; loads `.ttf` / `.otf` / `.ttc` directly; rasterizes to PNG via resvg.
 
