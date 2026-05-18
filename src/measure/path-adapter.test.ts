@@ -1,7 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as fontkit from 'fontkit';
-import { flipY, transformPath, toPathData, getBoundingBox, composeGlyphRunPath } from './path-adapter.js';
+import { flipY, transformPath, toPathData, composeGlyphRunPath, type PathCommand } from './path-adapter.js';
+
+function commandsXRange(commands: PathCommand[]): { minX: number; maxX: number } {
+    let minX = Infinity, maxX = -Infinity;
+    for (const c of commands) {
+        for (const v of [c.x, c.x1, c.x2]) {
+            if (v !== undefined) {
+                if (v < minX) minX = v;
+                if (v > maxX) maxX = v;
+            }
+        }
+    }
+    return { minX, maxX };
+}
 
 test('flipY inverts Y coordinates around the baseline', () => {
     const input = [
@@ -75,27 +88,6 @@ test('toPathData precision 0 rounds to integers', () => {
     assert.equal(toPathData(cmds as any, 0), 'M11 20');
 });
 
-test('getBoundingBox returns x1/y1/x2/y2 over move + line commands', () => {
-    const cmds = [
-        { type: 'M', x: 10, y: 20 },
-        { type: 'L', x: 30, y: 40 },
-        { type: 'L', x: 5, y: 15 },
-    ];
-    assert.deepEqual(getBoundingBox(cmds as any), { x1: 5, y1: 15, x2: 30, y2: 40 });
-});
-
-test('getBoundingBox includes bezier control points (conservative bbox)', () => {
-    const cmds = [
-        { type: 'M', x: 0, y: 0 },
-        { type: 'C', x1: 50, y1: 100, x2: 80, y2: -20, x: 100, y: 0 },
-    ];
-    assert.deepEqual(getBoundingBox(cmds as any), { x1: 0, y1: -20, x2: 100, y2: 100 });
-});
-
-test('getBoundingBox empty commands returns zero bbox', () => {
-    assert.deepEqual(getBoundingBox([]), { x1: 0, y1: 0, x2: 0, y2: 0 });
-});
-
 test('composeGlyphRunPath produces a Path-shaped object for "Hi" rendered at 64pt', () => {
     const font = fontkit.openSync('fonts/Inter-Regular.ttf');
     if ('fonts' in font) throw new Error('expected single font, got collection');
@@ -104,11 +96,6 @@ test('composeGlyphRunPath produces a Path-shaped object for "Hi" rendered at 64p
 
     assert.ok(path.commands.length > 0, 'should have at least one command');
     assert.ok(typeof path.toPathData === 'function');
-    assert.ok(typeof path.getBoundingBox === 'function');
-
-    const bbox = path.getBoundingBox();
-    assert.ok(bbox.x2 > bbox.x1, 'bbox width > 0');
-    assert.ok(bbox.y2 > bbox.y1, 'bbox height > 0');
 
     const d = path.toPathData(2);
     assert.ok(d.startsWith('M'), 'path d-string starts with M');
@@ -125,10 +112,11 @@ test('composeGlyphRunPath applies GPOS kerning', () => {
         bareWidth += font.glyphForCodePoint(ch.codePointAt(0)).advanceWidth * scale;
     }
 
-    // Width via layout — GPOS applied
+    // Width via layout — GPOS applied. Inspect the path's command range directly,
+    // which reflects whatever glyph positions composeGlyphRunPath emitted.
     const path = composeGlyphRunPath(font, 'AVATAR', 0, 100, 64);
-    const bbox = path.getBoundingBox();
-    const layoutWidth = bbox.x2 - bbox.x1;
+    const { minX, maxX } = commandsXRange(path.commands);
+    const layoutWidth = maxX - minX;
 
     // AVATAR has 4 negative-kern pairs (AV, VA, AT, TA). Layout must be meaningfully narrower.
     assert.ok(

@@ -2,12 +2,17 @@ import type { Font } from 'fontkit';
 import type { Token, MeasuredToken, MeasuredLine } from '../types.js';
 import { getFontMetrics } from '../fonts/index.js';
 import type { FontProvider } from '../fonts/index.js';
-import { getAdvanceWidth } from './metrics.js';
+import { getAdvanceWidth, getTightBounds } from './metrics.js';
 import { composeGlyphRunPath } from './path-adapter.js';
 
 /**
- * Measure a single token
- * Returns the path positioned at (x, baseline) and measurement info
+ * Measure a single token.
+ *
+ * Bbox values come from getTightBounds (true per-glyph bbox), not from the rendered
+ * path's convex hull. The path-hull bbox over-estimates curves whose off-curve
+ * control points fall outside the rendered outline — most visible on italics — and
+ * any divergence between the strategy's measurement (which uses getTightBounds) and
+ * the validator's measurement here can spuriously fail the post-hoc fit check.
  */
 export function measureToken(
     token: Token,
@@ -16,17 +21,17 @@ export function measureToken(
     baseline: number
 ): MeasuredToken {
     const path = composeGlyphRunPath(font, token.text, x, baseline, token.size);
-    const bbox = path.getBoundingBox();
+    const tight = getTightBounds(font, token.text, token.size);
 
     return {
         token,
         x,
         advanceWidth: getAdvanceWidth(font, token.text, token.size),
         path,
-        bboxX1: bbox.x1,
-        bboxX2: bbox.x2,
-        bboxY1: bbox.y1,
-        bboxY2: bbox.y2,
+        bboxX1: x + tight.leftBearing,
+        bboxX2: x + tight.tightRight,
+        bboxY1: baseline + tight.tightTop,
+        bboxY2: baseline + tight.tightBottom,
     };
 }
 

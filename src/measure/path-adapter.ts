@@ -72,29 +72,8 @@ export function toPathData(commands: PathCommand[], precision: number): string {
     }).join('');
 }
 
-/**
- * Conservative bounding box including all control points. This matches
- * opentype.js's Path.getBoundingBox() behavior. For tighter (true) bezier
- * bounds you'd compute curve extrema; we don't need that precision here.
- */
-export function getBoundingBox(commands: PathCommand[]): { x1: number; y1: number; x2: number; y2: number } {
-    if (commands.length === 0) return { x1: 0, y1: 0, x2: 0, y2: 0 };
-    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
-    const consider = (x?: number, y?: number) => {
-        if (x !== undefined) { if (x < x1) x1 = x; if (x > x2) x2 = x; }
-        if (y !== undefined) { if (y < y1) y1 = y; if (y > y2) y2 = y; }
-    };
-    for (const cmd of commands) {
-        consider(cmd.x, cmd.y);
-        consider(cmd.x1, cmd.y1);
-        consider(cmd.x2, cmd.y2);
-    }
-    return { x1, y1, x2, y2 };
-}
-
 export interface ComposedPath {
     commands: PathCommand[];
-    getBoundingBox(): { x1: number; y1: number; x2: number; y2: number };
     toPathData(precision: number): string;
 }
 
@@ -138,7 +117,6 @@ export function composeGlyphRunPath(
 
     return {
         commands,
-        getBoundingBox: () => getBoundingBox(commands),
         toPathData: (precision: number) => toPathData(commands, precision),
     };
 }
