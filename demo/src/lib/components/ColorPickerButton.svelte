@@ -11,8 +11,8 @@
     };
     const { color, onChange, label = 'Color' }: Props = $props();
 
-    // Favorites — MRU stack of hex strings, persisted to localStorage. Lime first to match brand.
-    const DEFAULT_FAVORITES = ['#d4ff4a', '#ffffff', '#ff5555', '#5599ff', '#ffcc00', '#000000'];
+    // Favorites — MRU stack of hex strings, persisted to localStorage. Brand amber first.
+    const DEFAULT_FAVORITES = ['#c79941', '#ffffff', '#ff5555', '#5599ff', '#ffcc00', '#000000'];
     const favorites = persistedJSON<string[]>('fitfull-color-favorites', DEFAULT_FAVORITES);
 
     function addCurrentToFavorites() {

@@ -24,7 +24,7 @@ const DEFAULT_DOC = {
                 text: 'fits.',
                 marks: [
                     { type: 'bold' },
-                    { type: 'textStyle', attrs: { size: 1.5, color: '#bedf1b' } },
+                    { type: 'textStyle', attrs: { size: 1.5, color: '#c79941' } },
                 ],
             },
         ],

@@ -62,10 +62,14 @@
   --color-surface-400: oklch(0.68  0.008 80);
   --color-surface-500: oklch(0.52  0.008 80);
   --color-surface-600: oklch(0.40  0.008 80);
-  --color-surface-700: oklch(0.30  0.008 80);
-  --color-surface-800: oklch(0.235 0.008 80);
-  --color-surface-900: oklch(0.185 0.008 80);
-  --color-surface-950: oklch(0.135 0.008 80);
+  /* Dark end softened (was 700=.30 / 800=.235 / 900=.185 / 950=.135 — near-black).
+     Lifted ~0.03 across the board and bumped chroma to 0.014 with hue shifted
+     toward the amber brand (75) so dark surfaces feel related to the accent
+     instead of like a separate neutral palette. */
+  --color-surface-700: oklch(0.33  0.014 75);
+  --color-surface-800: oklch(0.265 0.014 75);
+  --color-surface-900: oklch(0.215 0.014 75);
+  --color-surface-950: oklch(0.165 0.014 75);
   --color-surface-contrast-dark: var(--color-surface-950);
   --color-surface-contrast-light: var(--color-surface-50);
   --color-surface-contrast-50:  var(--color-surface-contrast-dark);
@@ -80,18 +84,19 @@
   --color-surface-contrast-900: var(--color-surface-contrast-light);
   --color-surface-contrast-950: var(--color-surface-contrast-light);
 
-  /* --- Primary (electric lime, hue ~130) --- */
-  --color-primary-50:  oklch(0.985 0.04 130);
-  --color-primary-100: oklch(0.96  0.06 130);
-  --color-primary-200: oklch(0.93  0.10 130);
-  --color-primary-300: oklch(0.90  0.14 130);
-  --color-primary-400: oklch(0.87  0.18 130);
-  --color-primary-500: oklch(0.84  0.21 130);
-  --color-primary-600: oklch(0.74  0.19 130);
-  --color-primary-700: oklch(0.62  0.16 130);
-  --color-primary-800: oklch(0.50  0.14 130);
-  --color-primary-900: oklch(0.36  0.10 130);
-  --color-primary-950: oklch(0.22  0.06 130);
+  /* --- Primary (warm amber, hue ~75 — sits in the same warm direction as
+         the surface ramp (hue 80), reads as type-foundry rather than tech-loud) --- */
+  --color-primary-50:  oklch(0.985 0.03 75);
+  --color-primary-100: oklch(0.96  0.05 75);
+  --color-primary-200: oklch(0.92  0.08 75);
+  --color-primary-300: oklch(0.86  0.11 75);
+  --color-primary-400: oklch(0.79  0.14 75);
+  --color-primary-500: oklch(0.74  0.15 75);
+  --color-primary-600: oklch(0.64  0.14 70);
+  --color-primary-700: oklch(0.54  0.13 65);
+  --color-primary-800: oklch(0.44  0.11 60);
+  --color-primary-900: oklch(0.32  0.08 55);
+  --color-primary-950: oklch(0.22  0.05 50);
   --color-primary-contrast-dark: var(--color-surface-950);
   --color-primary-contrast-light: var(--color-surface-50);
   --color-primary-contrast-50:  var(--color-primary-contrast-dark);
