@@ -2,9 +2,7 @@
     import ThemeToggle from './ThemeToggle.svelte';
     import AboutModal from './AboutModal.svelte';
 
-    // Library version — hardcoded for now. If version drift becomes an issue,
-    // wire to import.meta.env via vite-define plugin.
-    const VERSION = '1.4.0';
+    const VERSION = __FITFULL_VERSION__;
 
     let aboutOpen = $state(false);
 </script>

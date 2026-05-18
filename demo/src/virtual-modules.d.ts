@@ -9,3 +9,6 @@ declare module 'virtual:fonts-catalog' {
     }>;
     export default catalog;
 }
+
+// fitfull package.json version injected by Vite's `define` in vite.config.ts.
+declare const __FITFULL_VERSION__: string;

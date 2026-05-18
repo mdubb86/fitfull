@@ -1,6 +1,14 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, type Plugin } from 'vite';
+
+// Inject fitfull's version at build time so the AppBar tracks the lib
+// automatically — previously hardcoded and drifted (1.4.0 vs 1.5.x).
+const fitfullPkg = JSON.parse(
+    readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8'),
+) as { version: string };
 
 /**
  * `virtual:fonts-catalog` — slimmed Google Fonts catalog imported sync at
@@ -61,4 +69,7 @@ function fontsCatalogPlugin(): Plugin {
 
 export default defineConfig({
     plugins: [fontsCatalogPlugin(), tailwindcss(), sveltekit()],
+    define: {
+        __FITFULL_VERSION__: JSON.stringify(fitfullPkg.version),
+    },
 });
