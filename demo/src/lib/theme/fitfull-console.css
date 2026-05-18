@@ -246,8 +246,11 @@
  * Defined at :root so they're available regardless of active theme/mode.
  */
 :root {
-  --color-brand:    light-dark(var(--color-primary-700), var(--color-primary-500));
-  --color-brand-on: light-dark(white, oklch(0.18 0.008 80));
+  /* One brand amber across light + dark — matches the favicon fg + version
+     badge text in dark mode. Light mode loses a bit of contrast on white,
+     but the consistency wins; revisit per-surface if it bites. */
+  --color-brand:    var(--color-primary-500);
+  --color-brand-on: oklch(0.18 0.008 80);
   --syn-key:    light-dark(oklch(0.45 0.16 250), oklch(0.78 0.12 220));
   --syn-string: light-dark(oklch(0.45 0.14 150), oklch(0.80 0.14 145));
   --syn-num:    light-dark(oklch(0.55 0.18 30),  oklch(0.82 0.14 40));
