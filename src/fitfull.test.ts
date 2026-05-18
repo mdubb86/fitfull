@@ -8,6 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const FONTS_DIR = join(__dirname, '..', 'fonts');
 const INTER_REGULAR = join(FONTS_DIR, 'Inter-Regular.ttf');
 const INTER_BOLD = join(FONTS_DIR, 'Inter-Bold.ttf');
+const PLAYFAIR_ITALIC = join(FONTS_DIR, 'PlayfairDisplay-Italic.woff2');
 
 describe('Fitfull', () => {
     test('fit with text input returns svg and layout', async () => {
@@ -275,5 +276,39 @@ describe('Fitfull', () => {
 
         assert.ok(result.height <= 140 + 0.01, `height ${result.height} > 140`);
         assert.ok(result.width  <= 460 + 0.01, `width  ${result.width}  > 460`);
+    });
+
+    test('regression: strategy and validator must agree on glyph bbox for italic outlines', async () => {
+        // Bug: measureToken used path.getBoundingBox() which returns the convex hull of all
+        // Bezier control points — an over-estimate for curves whose off-curve handles fall
+        // outside the rendered outline. The strategy used getTightBounds (true glyph bbox).
+        // For Playfair italic glyphs the two disagree by enough to exceed FIT_TOLERANCE,
+        // so a fit the strategy validates is rejected by the post-hoc validator with
+        // "Output width N exceeds constraint M". Inter Regular/Bold don't trigger this —
+        // an italic outline is required.
+        const ff = Fitfull.create();
+        const tokens = [
+            { text: 'Ship',  size: 1,   font: INTER_REGULAR,   weight: 'regular' as const },
+            { text: ' ',     size: 1,   font: INTER_REGULAR,   weight: 'regular' as const },
+            { text: 'type',  size: 1,   font: PLAYFAIR_ITALIC, weight: 'italic'  as const },
+            { text: ' ',     size: 1,   font: INTER_REGULAR,   weight: 'regular' as const },
+            { text: 'that',  size: 1,   font: INTER_REGULAR,   weight: 'regular' as const },
+            { text: ' ',     size: 1,   font: INTER_REGULAR,   weight: 'regular' as const },
+            { text: 'fits.', size: 1.5, font: INTER_BOLD,      weight: 'bold'    as const },
+        ];
+
+        const result = await ff.fit({
+            tokens,
+            width: 469,
+            height: 554,
+            wrap: 'balanced',
+            align: 'center',
+            lineSpacing: 0.8,
+            minLines: 1,
+            maxLines: 3,
+        });
+
+        assert.ok(result.width  <= 469 + 0.01, `width  ${result.width}  > 469`);
+        assert.ok(result.height <= 554 + 0.01, `height ${result.height} > 554`);
     });
 });
