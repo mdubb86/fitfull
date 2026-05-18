@@ -26,9 +26,35 @@
     }
 
     function setTextColor(hex: string) { box.textColor = hex; }
-    function resetTextColor()           { box.textColor = '#000000'; }
     function setBgColor(hex: string)   { box.bgColor = hex; }
     function resetBgColor()             { box.bgColor = null; }
+
+    // The 16 original HTML named colors. Picker often lands exactly on one
+    // of these (especially black/white via the favorites), and "white" reads
+    // faster than "#ffffff" in the field-head label.
+    const NAMED_COLORS: Record<string, string> = {
+        '#000000': 'black',
+        '#ffffff': 'white',
+        '#ff0000': 'red',
+        '#00ff00': 'lime',
+        '#0000ff': 'blue',
+        '#ffff00': 'yellow',
+        '#00ffff': 'aqua',
+        '#ff00ff': 'fuchsia',
+        '#008000': 'green',
+        '#800000': 'maroon',
+        '#000080': 'navy',
+        '#808000': 'olive',
+        '#800080': 'purple',
+        '#c0c0c0': 'silver',
+        '#008080': 'teal',
+        '#808080': 'gray',
+    };
+    function colorLabel(hex: string | null, fallback = 'transparent'): string {
+        if (!hex) return fallback;
+        const lc = hex.toLowerCase();
+        return NAMED_COLORS[lc] ?? lc;
+    }
 
     // Min/max lines as a two-thumb range slider (1..10).
     const linesSliderId = $props.id();
@@ -165,22 +191,17 @@
                 <div class="field color-field">
                     <div class="field-head">
                         <span class="lbl">Text default</span>
-                        {#if box.textColor.toLowerCase() !== '#000000'}
-                            <button class="reset-color" onclick={resetTextColor} title="Reset to black">✕</button>
-                        {/if}
+                        <span class="val">{colorLabel(box.textColor)}</span>
                     </div>
-                    <ColorPickerButton color={box.textColor} onChange={setTextColor} label="Default text color" />
+                    <ColorPickerButton block color={box.textColor} onChange={setTextColor} label="Default text color" />
                 </div>
                 <div class="field color-field">
                     <div class="field-head">
                         <span class="lbl">Background</span>
-                        {#if box.bgColor}
-                            <button class="reset-color" onclick={resetBgColor} title="Reset to transparent">✕</button>
-                        {:else}
-                            <span class="val">transparent</span>
-                        {/if}
+                        <span class="val">{colorLabel(box.bgColor)}</span>
                     </div>
                     <ColorPickerButton
+                        block
                         color={box.bgColor ?? '#ffffff'}
                         transparent={box.bgColor === null}
                         onChange={setBgColor}
@@ -389,16 +410,4 @@
         transform: translateX(-50%);
     }
     .color-field .field-head { margin-bottom: 6px; }
-    .reset-color {
-        width: 18px; height: 18px;
-        padding: 0; border: none; background: transparent;
-        color: light-dark(var(--color-surface-500), var(--color-surface-400));
-        font-size: 10px; cursor: pointer;
-        border-radius: 3px;
-        display: inline-flex; align-items: center; justify-content: center;
-    }
-    .reset-color:hover {
-        color: light-dark(var(--color-surface-950), white);
-        background: light-dark(var(--color-surface-200), var(--color-surface-800));
-    }
 </style>

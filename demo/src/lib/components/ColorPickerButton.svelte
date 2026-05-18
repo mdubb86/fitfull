@@ -14,8 +14,11 @@
         /** When provided, the picker shows a "Transparent" tile in the
          *  favorites strip that calls this to clear back to no-color. */
         onClear?: () => void;
+        /** Render the trigger full-width with a tall rectangular swatch.
+         *  Right-sheet color fields use this; toolbar buttons stay inline. */
+        block?: boolean;
     };
-    const { color, onChange, label = 'Color', transparent = false, onClear }: Props = $props();
+    const { color, onChange, label = 'Color', transparent = false, onClear, block = false }: Props = $props();
 
     // Favorites — MRU stack of hex strings, persisted to localStorage. Brand amber first.
     const DEFAULT_FAVORITES = ['#c79941', '#ffffff', '#ff5555', '#5599ff', '#ffcc00', '#000000'];
@@ -52,7 +55,7 @@
     const areaChannels = { xChannel: 'saturation' as const, yChannel: 'brightness' as const };
 </script>
 
-<div {...api.getRootProps()} class="cp-root">
+<div {...api.getRootProps()} class="cp-root" class:cp-root-block={block}>
     <button {...api.getTriggerProps()} class="cp-trigger" title={label} aria-label={label}>
         <!-- Trigger swatch reflects the PARENT's `color` prop, not Zag's
              machine value — favorite clicks bypass the machine, so api.value
@@ -131,6 +134,10 @@
 
 <style>
     .cp-root { display: inline-block; }
+    /* Block variant — picker fills its container width with a tall rectangular
+       swatch. Used by the right-sheet color fields where the picker sits on
+       its own row and benefits from filling the column. */
+    .cp-root-block { display: block; }
 
     .cp-trigger {
         height: 28px; min-width: 28px;
@@ -138,6 +145,24 @@
         border: none; background: transparent; border-radius: 4px;
         cursor: pointer;
         display: inline-flex; align-items: center; justify-content: center;
+    }
+    .cp-root-block .cp-trigger {
+        height: 36px;
+        width: 100%;
+        padding: 4px;
+        display: flex;
+    }
+    .cp-root-block .cp-swatch-wrap {
+        width: 100%;
+        height: 100%;
+    }
+    .cp-root-block .cp-swatch {
+        width: 100%;
+        height: 100%;
+        border-radius: 4px;
+    }
+    .cp-root-block .cp-swatch-checker {
+        border-radius: 4px;
     }
     .cp-trigger:hover {
         background: light-dark(
