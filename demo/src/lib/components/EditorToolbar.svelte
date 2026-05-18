@@ -169,7 +169,7 @@
     <span class="sep"></span>
 
     <div class="group color-group">
-        <ColorPickerButton color={swatchColor} onChange={setColor} />
+        <ColorPickerButton color={swatchColor} onChange={setColor} label="Text color" />
         {#if hasPerTokenColor}
             <button
                 class="btn clear-color"

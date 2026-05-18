@@ -7,8 +7,9 @@
     type Props = {
         color: string;                       // hex, e.g. "#d4ff4a"
         onChange: (hex: string) => void;     // called on drag-end + on swatch click
+        label?: string;                      // tooltip + a11y label on the trigger
     };
-    const { color, onChange }: Props = $props();
+    const { color, onChange, label = 'Color' }: Props = $props();
 
     // Favorites — MRU stack of hex strings, persisted to localStorage. Lime first to match brand.
     const DEFAULT_FAVORITES = ['#d4ff4a', '#ffffff', '#ff5555', '#5599ff', '#ffcc00', '#000000'];
@@ -46,7 +47,7 @@
 </script>
 
 <div {...api.getRootProps()} class="cp-root">
-    <button {...api.getTriggerProps()} class="cp-trigger" title="Text color">
+    <button {...api.getTriggerProps()} class="cp-trigger" title={label} aria-label={label}>
         <span class="cp-swatch" {...api.getSwatchProps({ value: api.value })}></span>
     </button>
 

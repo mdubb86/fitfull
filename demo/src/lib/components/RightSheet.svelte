@@ -169,7 +169,7 @@
                             <button class="reset-color" onclick={resetTextColor} title="Reset to black">✕</button>
                         {/if}
                     </div>
-                    <ColorPickerButton color={box.textColor} onChange={setTextColor} />
+                    <ColorPickerButton color={box.textColor} onChange={setTextColor} label="Default text color" />
                 </div>
                 <div class="field color-field">
                     <div class="field-head">
@@ -180,7 +180,7 @@
                             <span class="val">transparent</span>
                         {/if}
                     </div>
-                    <ColorPickerButton color={box.bgColor ?? '#ffffff'} onChange={setBgColor} />
+                    <ColorPickerButton color={box.bgColor ?? '#ffffff'} onChange={setBgColor} label="Background color" />
                 </div>
             </div>
         </div>
