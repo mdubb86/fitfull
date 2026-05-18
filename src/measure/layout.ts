@@ -1,79 +1,49 @@
 import type { MeasuredLine, PositionedLine, PositionedLayout, Alignment } from '../types.js';
 
-/** A line with its vertical offset from the first baseline (before alignment) */
-type OffsetLine = {
-    line: MeasuredLine;
-    yOffset: number;
-};
-
 /**
- * Position lines vertically with proper spacing.
+ * Compute baseline positions and overall vertical bounds for a sequence of lines.
  *
- * lineSpacing scales the baseline-to-baseline distance (>1.0 adds gap, <1.0 tightens).
+ * Inputs are baseline-relative tight extents (tightTop negative, tightBottom positive).
+ * Output coordinates are also baseline-relative: baselines[0] = 0, the rest accumulate
+ * down by the gap formula below. minY/maxY/height describe the visual bbox in the same
+ * coordinate space.
+ *
+ * Baseline-to-baseline distance between consecutive lines:
+ *   gap = (prev.ascent - prev.descent) * lineSpacing + (current.ascent - prev.ascent)
+ *
+ * The (current.ascent - prev.ascent) term is required when ascents differ between lines
+ * (e.g. mixed font sizes): measureLine positions each line's baseline at y=maxAscent inside
+ * its own logical box, so a taller next line shifts its baseline further down than the
+ * previous line's full font-height alone would. lineSpacing scales only the prev-line
+ * portion — the baseline shift inside each line's box is not optional.
+ *
+ * The bounds scan walks every line: with mixed sizes, the extreme top or bottom is not
+ * guaranteed to be the first/last line.
  */
-function positionLines(lines: MeasuredLine[], lineSpacing: number): OffsetLine[] {
-    if (lines.length === 0) return [];
+export function computeVerticalLayout(
+    lines: Array<{ ascent: number; descent: number; tightTop: number; tightBottom: number }>,
+    lineSpacing: number
+): { baselines: number[]; minY: number; maxY: number; height: number } {
+    if (lines.length === 0) {
+        return { baselines: [], minY: 0, maxY: 0, height: 0 };
+    }
 
-    const result: OffsetLine[] = [];
-    result.push({ line: lines[0], yOffset: 0 });
-
+    const baselines: number[] = [0];
     for (let i = 1; i < lines.length; i++) {
-        const prevPositioned = result[i - 1];
-        const prevLine = prevPositioned.line;
-        const currentLine = lines[i];
-
-        // Font metrics baseline-to-baseline spacing
-        // lineHeight = previous line's ascent - descent
-        // Combined with baseline positions, actual baseline-to-baseline distance becomes:
-        //   lineHeight + (currentLine.baseline - prevLine.baseline)
-        //   = (prevLine.ascent - prevLine.descent) + (currentLine.ascent - prevLine.ascent)
-        //   = currentLine.ascent - prevLine.descent
-        // Which is: space for top line's descenders + space for bottom line's ascenders
-        const lineHeight = prevLine.ascent - prevLine.descent;
-        const actualGap = lineHeight * lineSpacing;
-
-        result.push({
-            line: currentLine,
-            yOffset: prevPositioned.yOffset + actualGap,
-        });
+        const prev = lines[i - 1];
+        const current = lines[i];
+        const gap = (prev.ascent - prev.descent) * lineSpacing + (current.ascent - prev.ascent);
+        baselines.push(baselines[i - 1] + gap);
     }
 
-    return result;
-}
-
-/**
- * Calculate total dimensions for positioned lines
- */
-function getPositionedLinesBounds(positioned: OffsetLine[]): {
-    minX: number;
-    minY: number;
-    maxX: number;
-    maxY: number;
-    width: number;
-    height: number;
-} {
-    if (positioned.length === 0) {
-        return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };
+    let minY = Infinity;
+    let maxY = -Infinity;
+    for (let i = 0; i < lines.length; i++) {
+        minY = Math.min(minY, baselines[i] + lines[i].tightTop);
+        maxY = Math.max(maxY, baselines[i] + lines[i].tightBottom);
     }
 
-    let minX = Infinity, minY = Infinity;
-    let maxX = -Infinity, maxY = -Infinity;
-
-    for (const { line, yOffset } of positioned) {
-        minX = Math.min(minX, line.tightBbox.x1);
-        minY = Math.min(minY, line.tightBbox.y1 + yOffset);
-        maxX = Math.max(maxX, line.tightBbox.x2);
-        maxY = Math.max(maxY, line.tightBbox.y2 + yOffset);
-    }
-
-    return {
-        minX,
-        minY,
-        maxX,
-        maxY,
-        width: maxX - minX,
-        height: maxY - minY,
-    };
+    return { baselines, minY, maxY, height: maxY - minY };
 }
 
 /**
@@ -90,12 +60,17 @@ export function computeLayout(
         return { width: 0, height: 0, lines: [], scale, align, lineSpacing };
     }
 
-    const offsetLines = positionLines(lines, lineSpacing);
-    const bounds = getPositionedLinesBounds(offsetLines);
-    const maxWidth = Math.max(...offsetLines.map(o => o.line.tightBbox.width));
-    const offsetY = -bounds.minY;
+    const vertical = computeVerticalLayout(lines, lineSpacing);
+    const firstAscent = lines[0].ascent;
+    const maxWidth = Math.max(...lines.map(l => l.tightBbox.width));
+    // Shift so the visual top of the layout is at y=0.
+    // Box-top of line i (in coords where line 0's box-top = 0) is baseline_i - line.ascent + firstAscent;
+    // adding offsetY translates the topmost glyph to y=0.
+    const offsetY = -(vertical.minY + firstAscent);
 
-    const positionedLines: PositionedLine[] = offsetLines.map(({ line, yOffset }) => {
+    const positionedLines: PositionedLine[] = lines.map((line, i) => {
+        const yBoxTop = offsetY + vertical.baselines[i] + firstAscent - line.ascent;
+
         // Base X: shift so visual left edge starts at 0
         let x = -line.tightBbox.x1;
 
@@ -109,17 +84,17 @@ export function computeLayout(
         return {
             measured: line,
             x,
-            y: offsetY + yOffset,
+            y: yBoxTop,
             width: line.tightBbox.width,
             height: line.tightBbox.height,
-            baseline: offsetY + yOffset + line.baseline,
+            baseline: yBoxTop + line.baseline,
             text: line.tokens.map(t => t.token.text).join(''),
         };
     });
 
     return {
         width: maxWidth,
-        height: bounds.height,
+        height: vertical.height,
         lines: positionedLines,
         scale,
         align,

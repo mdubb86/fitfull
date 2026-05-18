@@ -1,6 +1,6 @@
 {
     "name": "fitfull",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "description": "Text fitting with fontkit - supports styled tokens with varying sizes and weights",
     "type": "module",
     "packageManager": "pnpm@11.0.9",

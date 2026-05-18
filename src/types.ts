@@ -35,7 +35,9 @@ export type MeasuredLine = {
     baseline: number;       // distance from top to baseline (using font metrics)
     ascent: number;         // max ascent across all tokens (font metrics)
     descent: number;        // min descent across all tokens (font metrics, negative)
-    // Tight bounding box (actual glyph bounds)
+    tightTop: number;       // visual top edge relative to baseline (negative = above)
+    tightBottom: number;    // visual bottom edge relative to baseline (positive = below)
+    // Tight bounding box (actual glyph bounds, in box-local coords with baseline at y=ascent)
     tightBbox: {
         x1: number;
         y1: number;
