@@ -26,12 +26,13 @@
     });
 
     function refreshSelection() {
+        const attrs = editor.getAttributes('textStyle');
         selection = {
             bold: editor.isActive('bold'),
             italic: editor.isActive('italic'),
-            color: editor.getAttributes('textStyle').color ?? null,
-            size: editor.getAttributes('textStyle').size ?? 1,
-            fontFamily: editor.getAttributes('textStyle').fontFamily ?? null,
+            color: attrs.color ?? null,
+            size: attrs.size ?? 1,
+            fontFamily: attrs.fontFamily ?? null,
         };
     }
 

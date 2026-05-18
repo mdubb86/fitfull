@@ -53,20 +53,32 @@
     const api = $derived(colorPicker.connect(service, normalizeProps));
 
     const areaChannels = { xChannel: 'saturation' as const, yChannel: 'brightness' as const };
+
+    // Sync the (uncontrolled) machine to the parent's color prop whenever it
+    // changes — so opening the picker shows the CURRENT color in the
+    // saturation/brightness area, hex input, and hue slider, not whatever the
+    // picker was originally initialized with. Compare hex first so this is a
+    // no-op when the parent change was a result of THIS picker (avoids loops
+    // and avoids fighting an in-progress drag).
+    $effect(() => {
+        const target = (color || '#000000').toLowerCase();
+        const currentHex = api.value?.toString('hex')?.toLowerCase();
+        if (currentHex !== target) {
+            api.setValue(colorPicker.parse(target));
+        }
+    });
 </script>
 
 <div {...api.getRootProps()} class="cp-root" class:cp-root-block={block}>
     <button {...api.getTriggerProps()} class="cp-trigger" title={label} aria-label={label}>
-        <!-- Trigger swatch reflects the PARENT's `color` prop, not Zag's
-             machine value — favorite clicks bypass the machine, so api.value
-             would lag and display the original init color (typically white).
-             Parsing the prop on every render keeps the swatch in sync with
-             whatever the parent considers current. -->
+        <!-- Trigger swatch reflects the PARENT's `color` prop directly via
+             inline style. Zag's getSwatchProps would render the same thing
+             but routes through the machine's value, which doesn't sync when
+             the parent updates externally (e.g., toolbar swatch following the
+             selection). Bypass it — the swatch is purely visual; the click
+             handler lives on the wrapping button via getTriggerProps. -->
         <span class="cp-swatch-wrap">
-            <span
-                class="cp-swatch"
-                {...api.getSwatchProps({ value: colorPicker.parse(color || '#000000') })}
-            ></span>
+            <span class="cp-swatch" style:background-color={color || '#000000'}></span>
             {#if transparent}
                 <span class="cp-swatch-checker" aria-hidden="true"></span>
             {/if}
