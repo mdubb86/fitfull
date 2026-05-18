@@ -15,7 +15,7 @@ class BoxState {
      *  realistic headline cases; users can pin a tighter band (e.g. 2-3
      *  for a strict two-or-three-line layout). */
     minLines = $state(1);
-    maxLines = $state(10);
+    maxLines = $state(4);
     /** Document-level default text color for tokens without their own. */
     textColor = $state('#000000');
     /** Canvas background color baked into the SVG/PNG export. null = transparent. */
