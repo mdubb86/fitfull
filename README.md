@@ -2,24 +2,24 @@
 
 ![CI](https://github.com/mdubb86/fitfull/actions/workflows/ci.yml/badge.svg)
 
-Fit text into a given space. Outputs SVG or PNG with text optimally scaled and wrapped to fill the constraint box.
+Fit text into a fixed-size box and output SVG or PNG.
+
+Width, height, and a string are the inputs; font scale, line breaks, and a
+rendered image are the outputs. Built for dynamic OG images, certificates,
+social cards, and any pipeline that turns variable-length text into a
+deterministic, portable image — not a scaled DOM element. Runs in Node (CLI,
+library, standalone binary) and in the browser; loads `.ttf` / `.otf` / `.ttc`
+directly; embeds glyph paths into the SVG so output renders the same anywhere;
+rasterizes to PNG via resvg.
 
 ## Features
 
-- **Auto-scaling**: Finds the optimal font size to fill the available space
-- **Smart wrapping**: Balanced (even widths) or greedy (fill lines first) modes
-- **HTML input**: Pass styled HTML with `<b>`, `<i>`, `<style>` blocks, and inline CSS
-- **Mixed styles**: Support for varying font sizes, weights, and families within the same text
-- **TTC support**: TrueType Collections work, including macOS system fonts (Helvetica, Arial, etc.)
-- **Improved kerning**: GPOS-aware kerning for accurate inter-character spacing
-- **Vector output**: SVG with embedded font paths (no font dependencies)
-- **Raster output**: PNG using resvg for high-quality rendering
-
-## Documentation
-
-- [docs/architecture.md](./docs/architecture.md) — search algorithm, measurement, rendering pipeline
-- [docs/fonts.md](./docs/fonts.md) — how fonts are resolved and loaded
-- [docs/development.md](./docs/development.md) — setup, testing, releases, project layout
+- **Two-dimensional fit** — solves for scale against width *and* height, not just width
+- **Wrap is part of the search** — balanced or greedy modes, min/max line constraints
+- **Mixed typography** — per-word font, weight, and size within a single fit
+- **Three input modes** — plain text, HTML with inline styles + `<style>` blocks, or pre-built tokens
+- **Vector + raster output** — SVG with embedded font paths (zero runtime font dependency), PNG via resvg
+- **System fonts** — `.ttc` collections work, including macOS Helvetica / Arial / etc.
 
 ## Installation
 
@@ -320,9 +320,25 @@ Fills lines before wrapping, like normal paragraph text. Last line is typically 
 
 For an explanation of how the search picks an arrangement and scale, see [docs/architecture.md](./docs/architecture.md).
 
+## Documentation
+
+- [docs/architecture.md](./docs/architecture.md) — search algorithm, measurement, rendering pipeline
+- [docs/fonts.md](./docs/fonts.md) — how fonts are resolved and loaded
+- [docs/development.md](./docs/development.md) — setup, testing, releases, project layout
+
 ## Known Limitations
 
 - **`.dfont`, `.woff`, `.woff2` are not supported** — only `.ttf`, `.otf`, and `.ttc` work.
+
+## Related projects
+
+- **[fitty](https://github.com/rikschennink/fitty)** — Scales a single-line DOM
+  heading to span its parent's width. Tiny, fast, browser-only. Best for
+  responsive one-line headlines on a live page.
+- **[pretext](https://github.com/chenglou/pretext)** — Measures multiline text
+  height and wrapping without touching the DOM. Use it when you need to know how
+  text will lay out (virtualization, masonry, scroll anchoring) at a known font
+  size.
 
 ## License
 
