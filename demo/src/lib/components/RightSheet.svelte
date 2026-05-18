@@ -180,7 +180,13 @@
                             <span class="val">transparent</span>
                         {/if}
                     </div>
-                    <ColorPickerButton color={box.bgColor ?? '#ffffff'} onChange={setBgColor} label="Background color" />
+                    <ColorPickerButton
+                        color={box.bgColor ?? '#ffffff'}
+                        transparent={box.bgColor === null}
+                        onChange={setBgColor}
+                        onClear={resetBgColor}
+                        label="Background color"
+                    />
                 </div>
             </div>
         </div>

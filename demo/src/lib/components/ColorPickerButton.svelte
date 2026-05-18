@@ -8,8 +8,14 @@
         color: string;                       // hex, e.g. "#d4ff4a"
         onChange: (hex: string) => void;     // called on drag-end + on swatch click
         label?: string;                      // tooltip + a11y label on the trigger
+        /** Show a checkerboard swatch instead of `color` — used by the
+         *  Background picker when bgColor is null (transparent). */
+        transparent?: boolean;
+        /** When provided, the picker shows a "Transparent" tile in the
+         *  favorites strip that calls this to clear back to no-color. */
+        onClear?: () => void;
     };
-    const { color, onChange, label = 'Color' }: Props = $props();
+    const { color, onChange, label = 'Color', transparent = false, onClear }: Props = $props();
 
     // Favorites — MRU stack of hex strings, persisted to localStorage. Brand amber first.
     const DEFAULT_FAVORITES = ['#c79941', '#ffffff', '#ff5555', '#5599ff', '#ffcc00', '#000000'];
@@ -48,7 +54,20 @@
 
 <div {...api.getRootProps()} class="cp-root">
     <button {...api.getTriggerProps()} class="cp-trigger" title={label} aria-label={label}>
-        <span class="cp-swatch" {...api.getSwatchProps({ value: api.value })}></span>
+        <!-- Trigger swatch reflects the PARENT's `color` prop, not Zag's
+             machine value — favorite clicks bypass the machine, so api.value
+             would lag and display the original init color (typically white).
+             Parsing the prop on every render keeps the swatch in sync with
+             whatever the parent considers current. -->
+        <span class="cp-swatch-wrap">
+            <span
+                class="cp-swatch"
+                {...api.getSwatchProps({ value: colorPicker.parse(color || '#000000') })}
+            ></span>
+            {#if transparent}
+                <span class="cp-swatch-checker" aria-hidden="true"></span>
+            {/if}
+        </span>
     </button>
 
     <div use:portalToBody {...api.getPositionerProps()} class="cp-positioner">
@@ -72,8 +91,21 @@
                 <button type="button" class="cp-fav-add" title="Add to favorites" onclick={addCurrentToFavorites}>★</button>
             </label>
 
-            <!-- Favorites strip (shift-click to remove) -->
+            <!-- Favorites strip (shift-click to remove). When the parent
+                 supplies an onClear, prepend a "Transparent" tile so the
+                 picker itself is a way back to no-color (not just the ✕ next
+                 to the field label, which is easy to miss). -->
             <div {...api.getSwatchGroupProps()} class="cp-favs">
+                {#if onClear}
+                    <button
+                        type="button"
+                        class="cp-fav cp-fav-clear"
+                        title="Transparent (no background)"
+                        onclick={() => onClear()}
+                    >
+                        <span class="cp-fav-swatch cp-fav-swatch-transparent"></span>
+                    </button>
+                {/if}
                 {#each favorites.value as hex (hex)}
                     <button
                         {...api.getSwatchTriggerProps({ value: hex })}
@@ -113,6 +145,11 @@
             color-mix(in oklab, white 10%, transparent)
         );
     }
+    .cp-swatch-wrap {
+        position: relative;
+        display: inline-block;
+        line-height: 0;
+    }
     .cp-swatch {
         width: 18px; height: 18px;
         border-radius: 3px;
@@ -121,6 +158,21 @@
             color-mix(in oklab, white 18%, transparent)
         );
         display: block;
+    }
+    /* Mini checkerboard overlay — matches the canvas convention so the
+       swatch reads as "transparent" rather than solid white. */
+    .cp-swatch-checker {
+        position: absolute;
+        inset: 0;
+        border-radius: 3px;
+        pointer-events: none;
+        background:
+            conic-gradient(
+                light-dark(var(--color-surface-100), var(--color-surface-800)) 25%,
+                light-dark(var(--color-surface-300), var(--color-surface-600)) 0 50%,
+                light-dark(var(--color-surface-100), var(--color-surface-800)) 0 75%,
+                light-dark(var(--color-surface-300), var(--color-surface-600)) 0)
+            0 0 / 8px 8px;
     }
 
     /* Zag's positioner uses inline `z-index: var(--z-index)` which defaults to auto.
@@ -223,5 +275,16 @@
             color-mix(in oklab, black 18%, transparent),
             color-mix(in oklab, white 18%, transparent)
         );
+    }
+    /* Checkerboard variant for the "Transparent" tile — same pattern as the
+       trigger overlay so the meaning reads consistently. */
+    .cp-fav-swatch-transparent {
+        background:
+            conic-gradient(
+                light-dark(var(--color-surface-100), var(--color-surface-800)) 25%,
+                light-dark(var(--color-surface-300), var(--color-surface-600)) 0 50%,
+                light-dark(var(--color-surface-100), var(--color-surface-800)) 0 75%,
+                light-dark(var(--color-surface-300), var(--color-surface-600)) 0)
+            0 0 / 8px 8px;
     }
 </style>
