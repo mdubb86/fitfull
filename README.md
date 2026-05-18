@@ -4,13 +4,13 @@
 
 Fit text into a fixed-size box and output SVG or PNG.
 
-Width, height, and a string are the inputs; font scale, line breaks, and a
-rendered image are the outputs. Built for dynamic OG images, certificates,
-social cards, and any pipeline that turns variable-length text into a
-deterministic, portable image — not a scaled DOM element. Runs in Node (CLI,
-library, standalone binary) and in the browser; loads `.ttf` / `.otf` / `.ttc`
-directly; embeds glyph paths into the SVG so output renders the same anywhere;
-rasterizes to PNG via resvg.
+Producing an image with variable-length text is fiddlier than it sounds. You
+pick a font size that fills the space without overflowing, decide where lines
+break, and produce something that renders identically across machines and
+runtimes. fitfull does all three. Useful for OG images, social cards, name
+badges, certificates — anywhere the text length varies but the output
+dimensions don't. Runs in Node (CLI, library, standalone binary) and in the
+browser; loads `.ttf` / `.otf` / `.ttc` directly; rasterizes to PNG via resvg.
 
 ## Features
 

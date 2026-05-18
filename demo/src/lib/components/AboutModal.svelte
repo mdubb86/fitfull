@@ -30,10 +30,12 @@
 
             <div class="ab-body">
                 <p>
-                    Width, height, and a string are the inputs; font scale, line breaks, and a
-                    rendered image are the outputs. Built for dynamic OG images, certificates,
-                    social cards, and any pipeline that turns variable-length text into a
-                    deterministic, portable image — not a scaled DOM element.
+                    Producing an image with variable-length text is fiddlier than it sounds.
+                    You pick a font size that fills the space without overflowing, decide
+                    where lines break, and produce something that renders identically across
+                    machines and runtimes. fitfull does all three. Useful for OG images,
+                    social cards, name badges, certificates — anywhere the text length
+                    varies but the output dimensions don't.
                 </p>
 
                 <h3>What sets it apart</h3>
