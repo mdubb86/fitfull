@@ -1,6 +1,10 @@
 <script lang="ts">
     import ThemeToggle from './ThemeToggle.svelte';
     import AboutModal from './AboutModal.svelte';
+    // Inline the favicon as the nav logo — single source of truth (regenerate
+    // demo/static/favicon.svg and the bar updates with it). `?raw` returns the
+    // SVG markup as a string so we can drop it straight into the DOM.
+    import faviconSvg from '../../../static/favicon.svg?raw';
 
     const VERSION = __FITFULL_VERSION__;
 
@@ -10,7 +14,7 @@
 <header class="appbar">
     <!-- Lead: logo + version -->
     <div class="lead">
-        <div class="logo">f</div>
+        <div class="logo" aria-hidden="true">{@html faviconSvg}</div>
         <span class="badge">v{VERSION}</span>
     </div>
 
@@ -53,14 +57,13 @@
     }
     .logo {
         width: 28px; height: 28px;
-        border-radius: 0.375rem;
-        background: var(--color-brand);
-        color: light-dark(white, oklch(0.18 0.008 80));
-        display: grid; place-items: center;
-        font-family: 'Geist Mono', monospace;
-        font-weight: 700; font-size: 14px;
-        letter-spacing: -0.04em;
         flex-shrink: 0;
+        display: block;
+        line-height: 0;
+    }
+    .logo :global(svg) {
+        width: 100%; height: 100%;
+        display: block;
     }
     .badge {
         font-family: 'Geist Mono', monospace;
