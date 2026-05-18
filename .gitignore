@@ -13,3 +13,5 @@ docs/superpowers/
 test-results/
 playwright-report/
 tests/e2e/fixture-bundle.js
+demo/build/
+demo/.svelte-kit/
