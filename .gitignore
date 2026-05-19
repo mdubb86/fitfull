@@ -1,7 +1,7 @@
 node_modules/
 dist/
 dist-test/
-fitfull
+/fitfull
 .pnpm-store/
 .idea/
 *.iml
@@ -13,5 +13,6 @@ docs/superpowers/
 test-results/
 playwright-report/
 tests/e2e/fixture-bundle.js
+# SvelteKit generated dirs (demo workspace package)
 demo/build/
 demo/.svelte-kit/

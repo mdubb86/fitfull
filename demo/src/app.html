@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="fitfull-console" data-mode="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Favicon set — SVG for modern browsers, ICO legacy fallback,
+         apple-touch-icon for iOS pinned tabs, PWA icons via webmanifest. -->
+    <link rel="icon" type="image/svg+xml" href="%sveltekit.assets%/favicon.svg" />
+    <link rel="alternate icon" href="%sveltekit.assets%/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%sveltekit.assets%/apple-touch-icon.png" />
+    <link rel="manifest" href="%sveltekit.assets%/site.webmanifest" />
+    <meta name="theme-color" content="#37270b" />
+    <title>Fitfull Playground</title>
+    <script>
+        // No-flash theme/mode: resolve and apply BEFORE first paint.
+        // A $effect in +layout.svelte runs post-hydration — too late, would flash.
+        // localStorage stores the USER PREFERENCE: 'system' | 'light' | 'dark'.
+        // Default (no stored value) is 'system' — follows OS preference.
+        try {
+            const pref = localStorage.getItem('fitfull-mode');
+            let mode;
+            if (pref === 'light' || pref === 'dark') {
+                mode = pref;
+            } else {
+                // 'system' or null → use OS preference
+                mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            document.documentElement.dataset.mode = mode;
+        } catch (e) { /* localStorage unavailable */ }
+    </script>
+    %sveltekit.head%
+</head>
+<body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+</body>
+</html>

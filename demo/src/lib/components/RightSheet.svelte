@@ -1,0 +1,413 @@
+<script lang="ts">
+    import * as slider from '@zag-js/slider';
+    import { normalizeProps, useMachine } from '@zag-js/svelte';
+    import { box } from '$lib/state/box.svelte';
+    import { fit } from '$lib/fitfull/fit.svelte';
+    import { ui } from '$lib/state/ui.svelte';
+    import ColorPickerButton from './ColorPickerButton.svelte';
+
+    function onDimInput() {
+        // bind:value wrote the raw input straight to box.width/box.height —
+        // clamp via setDims (16 min, 7680 max) before scheduling a fit.
+        box.setDims(box.width, box.height);
+        fit.scheduleFit(180);
+    }
+
+    function setWrap(w: 'balanced' | 'greedy') {
+        box.wrap = w;
+        fit.scheduleFit(0);
+    }
+    function setAlign(a: 'left' | 'center' | 'right') {
+        box.align = a;
+        fit.scheduleFit(0);
+    }
+    function onSpacingChange() {
+        fit.scheduleFit(0);
+    }
+
+    function setTextColor(hex: string) { box.textColor = hex; }
+    function setBgColor(hex: string)   { box.bgColor = hex; }
+    function resetBgColor()             { box.bgColor = null; }
+
+    // The 16 original HTML named colors. Picker often lands exactly on one
+    // of these (especially black/white via the favorites), and "white" reads
+    // faster than "#ffffff" in the field-head label.
+    const NAMED_COLORS: Record<string, string> = {
+        '#000000': 'black',
+        '#ffffff': 'white',
+        '#ff0000': 'red',
+        '#00ff00': 'lime',
+        '#0000ff': 'blue',
+        '#ffff00': 'yellow',
+        '#00ffff': 'aqua',
+        '#ff00ff': 'fuchsia',
+        '#008000': 'green',
+        '#800000': 'maroon',
+        '#000080': 'navy',
+        '#808000': 'olive',
+        '#800080': 'purple',
+        '#c0c0c0': 'silver',
+        '#008080': 'teal',
+        '#808080': 'gray',
+    };
+    function colorLabel(hex: string | null, fallback = 'transparent'): string {
+        if (!hex) return fallback;
+        const lc = hex.toLowerCase();
+        return NAMED_COLORS[lc] ?? lc;
+    }
+
+    // Min/max lines as a two-thumb range slider (1..10).
+    const linesSliderId = $props.id();
+    const linesService = useMachine(slider.machine, () => ({
+        id: linesSliderId,
+        min: 1,
+        max: 10,
+        step: 1,
+        value: [box.minLines, box.maxLines],
+        onValueChange: (d: { value: number[] }) => {
+            box.minLines = d.value[0];
+            box.maxLines = d.value[1];
+        },
+        onValueChangeEnd: () => fit.scheduleFit(0),
+    }));
+    const linesApi = $derived(slider.connect(linesService, normalizeProps));
+</script>
+
+<aside class="sheet sheet-right" class:collapsed={ui.rightCollapsed}>
+    <div class="sheet-head">
+        <span class="sheet-title">Settings</span>
+        <button class="sheet-toggle" onclick={() => ui.setRightCollapsed(true)} title="Hide settings sheet" aria-label="Hide settings sheet">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="5.5 3 9.5 7 5.5 11"/>
+            </svg>
+        </button>
+    </div>
+    <div class="sheet-body">
+        <!-- Dimensions -->
+        <div class="section">
+            <div class="section-head">
+                <span class="name">
+                    <span class="dot"></span>
+                    Dimensions
+                </span>
+                <span class="val">{box.width} × {box.height}</span>
+            </div>
+            <div class="section-body">
+                <div class="numpair">
+                    <label class="numinput">
+                        <span class="lbl-mini">W</span>
+                        <input type="number" min="16" max="7680" bind:value={box.width} oninput={onDimInput} />
+                        <span class="suffix">px</span>
+                    </label>
+                    <label class="numinput">
+                        <span class="lbl-mini">H</span>
+                        <input type="number" min="16" max="7680" bind:value={box.height} oninput={onDimInput} />
+                        <span class="suffix">px</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layout -->
+        <div class="section">
+            <div class="section-head">
+                <span class="name">
+                    <span class="dot"></span>
+                    Layout
+                </span>
+            </div>
+            <div class="section-body">
+                <div class="field">
+                    <div class="field-head">
+                        <span class="lbl">Wrap mode</span>
+                        <span class="val">{box.wrap}</span>
+                    </div>
+                    <div class="minigroup">
+                        <button class:active={box.wrap === 'balanced'} onclick={() => setWrap('balanced')}>Balanced</button>
+                        <button class:active={box.wrap === 'greedy'} onclick={() => setWrap('greedy')}>Greedy</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-head">
+                        <span class="lbl">Align</span>
+                        <span class="val">{box.align}</span>
+                    </div>
+                    <div class="aligns">
+                        {#each ['left', 'center', 'right'] as const as a}
+                            <button class:active={box.align === a} onclick={() => setAlign(a)} title={a}>
+                                {#if a === 'left'}
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="2" y1="7" x2="9" y2="7"/><line x1="2" y1="10.5" x2="11" y2="10.5"/></svg>
+                                {:else if a === 'center'}
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="4" y1="7" x2="10" y2="7"/><line x1="3" y1="10.5" x2="11" y2="10.5"/></svg>
+                                {:else}
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7"><line x1="2" y1="3.5" x2="12" y2="3.5"/><line x1="5" y1="7" x2="12" y2="7"/><line x1="3" y1="10.5" x2="12" y2="10.5"/></svg>
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="field-head">
+                        <span class="lbl">Line spacing</span>
+                        <span class="val">{box.lineSpacing.toFixed(1)}×</span>
+                    </div>
+                    <input class="slider" type="range" min="0.5" max="1.5" step="0.05" bind:value={box.lineSpacing} onchange={onSpacingChange} />
+                </div>
+                <div class="field">
+                    <div class="field-head">
+                        <span class="lbl">Lines</span>
+                        <span class="val">{box.minLines}–{box.maxLines}</span>
+                    </div>
+                    <div {...linesApi.getRootProps()} class="lines-slider">
+                        <div {...linesApi.getControlProps()} class="lines-track-wrap">
+                            <div {...linesApi.getTrackProps()} class="lines-track">
+                                <div {...linesApi.getRangeProps()} class="lines-range"></div>
+                            </div>
+                            {#each linesApi.value as _, i (i)}
+                                <div {...linesApi.getThumbProps({ index: i })} class="lines-thumb">
+                                    <input {...linesApi.getHiddenInputProps({ index: i })} />
+                                </div>
+                            {/each}
+                        </div>
+                        <div {...linesApi.getMarkerGroupProps()} class="lines-markers">
+                            {#each Array(10) as _, i (i)}
+                                <span {...linesApi.getMarkerProps({ value: i + 1 })} class="lines-marker"></span>
+                            {/each}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colors -->
+        <div class="section">
+            <div class="section-head">
+                <span class="name">
+                    <span class="dot"></span>
+                    Colors
+                </span>
+            </div>
+            <div class="section-body">
+                <div class="field color-field">
+                    <div class="field-head">
+                        <span class="lbl">Text default</span>
+                        <span class="val">{colorLabel(box.textColor)}</span>
+                    </div>
+                    <ColorPickerButton block color={box.textColor} onChange={setTextColor} label="Default text color" />
+                </div>
+                <div class="field color-field">
+                    <div class="field-head">
+                        <span class="lbl">Background</span>
+                        <span class="val">{colorLabel(box.bgColor)}</span>
+                    </div>
+                    <ColorPickerButton
+                        block
+                        color={box.bgColor ?? '#ffffff'}
+                        transparent={box.bgColor === null}
+                        onChange={setBgColor}
+                        onClear={resetBgColor}
+                        label="Background color"
+                    />
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<style>
+    .sheet {
+        width: 320px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        background: light-dark(var(--color-surface-50), var(--color-surface-950));
+        border-left: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        min-height: 0; min-width: 0; overflow: hidden;
+        transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .sheet.collapsed { width: 0; border: none; }
+    /* Mobile: fixed-position modal overlay (see LeftSheet for rationale). */
+    @media (max-width: 1023px) {
+        .sheet {
+            position: fixed;
+            top: 48px;
+            left: 0; right: 0; bottom: 0;
+            width: auto;
+            z-index: 50;
+        }
+        .sheet.collapsed { display: none; }
+    }
+    .sheet-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 16px;
+        height: 48px;
+        border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+    }
+    .sheet-title {
+        font-size: 10.5px; font-weight: 600;
+        letter-spacing: 0.14em; text-transform: uppercase;
+        color: light-dark(var(--color-surface-700), var(--color-surface-300));
+    }
+    .sheet-toggle {
+        width: 30px; height: 28px;
+        display: grid; place-items: center;
+        border-radius: 6px;
+        background: light-dark(var(--color-surface-100), var(--color-surface-900));
+        border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        color: light-dark(var(--color-surface-600), var(--color-surface-300));
+        cursor: pointer;
+        transition: background 120ms, border-color 120ms, color 120ms;
+    }
+    .sheet-toggle:hover {
+        color: var(--color-brand);
+        background: light-dark(var(--color-surface-200), var(--color-surface-800));
+        border-color: light-dark(var(--color-surface-300), var(--color-surface-700));
+    }
+    .sheet-toggle:active {
+        background: light-dark(var(--color-surface-300), var(--color-surface-700));
+    }
+    .sheet-toggle:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brand) 30%, transparent);
+    }
+    .sheet-body { overflow-y: auto; min-height: 0; }
+    .section { border-bottom: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800)); }
+    .section-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 14px;
+    }
+    .section-head .val {
+        font-family: 'Geist Mono', monospace; font-size: 11px;
+        color: light-dark(var(--color-surface-950), var(--color-surface-100));
+    }
+    .section-head .name {
+        font-size: 12px; font-weight: 500;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .section-head .dot {
+        width: 4px; height: 4px; border-radius: 999px;
+        background: var(--color-brand); opacity: 0.7;
+    }
+    .section-body { padding: 4px 14px 14px; }
+    .numpair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .numinput {
+        position: relative;
+        background: light-dark(white, var(--color-surface-900));
+        border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        border-radius: 0.375rem;
+        padding: 6px 28px 6px 10px;
+        display: flex; align-items: center;
+    }
+    .numinput input {
+        width: 100%; font-family: 'Geist Mono', monospace;
+        font-size: 12.5px; outline: none; background: transparent;
+        border: none; color: light-dark(var(--color-surface-950), var(--color-surface-100));
+    }
+    .numinput .suffix {
+        position: absolute; right: 10px;
+        font-family: 'Geist Mono', monospace; font-size: 10.5px;
+        color: light-dark(var(--color-surface-400), var(--color-surface-500));
+    }
+    .numinput .lbl-mini {
+        position: absolute; left: 8px; top: -6px;
+        background: light-dark(var(--color-surface-50), var(--color-surface-950));
+        padding: 0 4px;
+        font-family: 'Geist Mono', monospace; font-size: 9.5px;
+        color: light-dark(var(--color-surface-500), var(--color-surface-500));
+        letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .numinput:focus-within {
+        border-color: var(--color-brand);
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brand) 18%, transparent);
+    }
+    .field { padding: 8px 0; }
+    .field-head {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 6px;
+    }
+    .field .lbl {
+        font-size: 11px;
+        color: light-dark(var(--color-surface-600), var(--color-surface-400));
+    }
+    .field .val {
+        font-family: 'Geist Mono', monospace; font-size: 11px;
+        color: light-dark(var(--color-surface-950), var(--color-surface-100));
+    }
+    .minigroup, .aligns {
+        display: flex; gap: 4px;
+        background: light-dark(var(--color-surface-100), var(--color-surface-900));
+        border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));
+        border-radius: 0.375rem;
+        padding: 2px;
+    }
+    .aligns { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .minigroup button, .aligns button {
+        font-size: 11px; font-weight: 500;
+        color: light-dark(var(--color-surface-600), var(--color-surface-300));
+        padding: 5px 8px; border-radius: 4px;
+        border: none; background: transparent; cursor: pointer;
+        display: inline-flex; justify-content: center; align-items: center; gap: 4px;
+    }
+    .minigroup button { flex: 1; }
+    .aligns button { height: 26px; }
+    .minigroup button:hover, .aligns button:hover {
+        color: light-dark(var(--color-surface-950), var(--color-surface-100));
+    }
+    .minigroup button.active, .aligns button.active {
+        background: light-dark(white, var(--color-surface-800));
+        color: light-dark(var(--color-surface-950), var(--color-surface-50));
+        box-shadow: inset 0 0 0 1px light-dark(var(--color-surface-200), var(--color-surface-700));
+    }
+    .aligns button.active { color: var(--color-brand); }
+    .slider {
+        width: 100%;
+        accent-color: var(--color-brand);
+    }
+
+    /* Two-thumb lines slider (min..max). Same visual language as the native
+       line-spacing slider above, but with a filled "selected" sub-range. */
+    .lines-slider { padding: 4px 0; }
+    .lines-track-wrap {
+        position: relative;
+        height: 18px;
+        display: flex; align-items: center;
+    }
+    .lines-track {
+        position: relative;
+        width: 100%; height: 4px;
+        background: light-dark(var(--color-surface-200), var(--color-surface-800));
+        border-radius: 999px;
+    }
+    .lines-range {
+        position: absolute;
+        height: 100%;
+        background: var(--color-brand);
+        border-radius: 999px;
+    }
+    .lines-thumb {
+        width: 14px; height: 14px;
+        background: light-dark(white, var(--color-surface-100));
+        border: 2px solid var(--color-brand);
+        border-radius: 50%;
+        cursor: grab;
+        touch-action: none;
+    }
+    .lines-thumb:active { cursor: grabbing; }
+    .lines-thumb:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-brand) 30%, transparent);
+    }
+    /* Tick marks below the track at each integer step (1..10).
+       Zag positions them via inline left/top per value. */
+    .lines-markers {
+        position: relative;
+        height: 8px;
+        margin-top: 4px;
+    }
+    .lines-marker {
+        position: absolute;
+        width: 1px; height: 6px;
+        background: light-dark(var(--color-surface-300), var(--color-surface-700));
+        transform: translateX(-50%);
+    }
+    .color-field .field-head { margin-bottom: 6px; }
+</style>

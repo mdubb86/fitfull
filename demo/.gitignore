@@ -1,0 +1,3 @@
+# SvelteKit build artifacts
+/.svelte-kit
+/build
