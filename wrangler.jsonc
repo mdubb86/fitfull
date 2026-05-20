@@ -3,7 +3,7 @@
     // Deploys via Workers Builds — no Worker code (no `main`), just static
     // assets. Build command is set in the dashboard, not here.
     "$schema": "node_modules/wrangler/config-schema.json",
-    "name": "fitfull-demo",
+    "name": "fitfull",
     "compatibility_date": "2026-05-20",
     "assets": {
         "directory": "./demo/build",
