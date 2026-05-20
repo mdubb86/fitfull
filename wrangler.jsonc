@@ -1,0 +1,16 @@
+{
+    // Cloudflare Workers + Static Assets config for the demo at demo/build.
+    // Deploys via Workers Builds — no Worker code (no `main`), just static
+    // assets. Build command is set in the dashboard, not here.
+    "$schema": "node_modules/wrangler/config-schema.json",
+    "name": "fitfull-demo",
+    "compatibility_date": "2026-05-20",
+    "assets": {
+        "directory": "./demo/build",
+        // adapter-static emits prerendered routes + 404.html for client-side
+        // routing. Tell CF to serve that fallback on unmatched paths so deep
+        // links work (otherwise CF returns a generic 404 and the SPA never
+        // gets a chance to render the route).
+        "not_found_handling": "404-page"
+    }
+}
