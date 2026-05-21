@@ -54,7 +54,7 @@
 
         function move(ev: PointerEvent) {
             if (ev.pointerId !== pointerId) return;
-            if (fit.state !== 'resizing') fit.state = 'resizing';
+            if (fit.state !== 'settling') fit.state = 'settling';
             // dx/dy in LOGICAL pixels — divided by startScale (NOT live scale,
             // which changes during drag and would compound into runaway).
             const dx = (ev.clientX - sx) / startScale;

@@ -11,10 +11,6 @@
     const fitState = $derived(fit.state);
     const canExport = $derived(fit.result !== null);
 
-    /** User-facing label — `resizing` is an internal "debounce pending" state;
-     *  to the user it's all just "fitting" (something is happening). */
-    const displayState = $derived(fitState === 'resizing' ? 'fitting' : fitState);
-
     /** Trim fitfull's verbose errors to a one-liner the user can act on. */
     function humanizeError(raw: string): string {
         if (raw.includes('exceeds constraint')) return "doesn't fit at current sizes";
@@ -62,7 +58,7 @@
 <div class="canvas-header">
     <span class="state state-{fitState}" title={fit.error ?? ''}>
         <span class="pip"></span>
-        <span>{displayState}</span>
+        <span>{fitState}</span>
         {#if fitState === 'error' && fit.error}
             <span class="error-msg">— {humanizeError(fit.error)}</span>
         {/if}
@@ -134,8 +130,8 @@
         box-shadow: 0 0 8px var(--color-brand);
         animation: pulse 1.6s ease-in-out infinite;
     }
-    .state-resizing { color: var(--color-warning-500); }
-    .state-resizing .pip {
+    .state-settling { color: var(--color-warning-500); }
+    .state-settling .pip {
         background: var(--color-warning-500);
         box-shadow: 0 0 8px var(--color-warning-500);
         animation: pulse 0.6s ease-in-out infinite;

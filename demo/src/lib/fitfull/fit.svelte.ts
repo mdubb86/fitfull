@@ -16,7 +16,7 @@ class FitState {
      *  jittery ratio against stale text dims. */
     fitBoxW = $state(0);
     fitBoxH = $state(0);
-    state = $state<'fit' | 'resizing' | 'fitting' | 'error'>('fit');
+    state = $state<'fit' | 'settling' | 'fitting' | 'error'>('fit');
     durationMs = $state(0);
     error = $state<string | null>(null);
 
@@ -66,7 +66,7 @@ class FitState {
     /** Debounce re-fits so dragging doesn't trigger 60 fits/sec. */
     scheduleFit(delay = 150) {
         if (this.debounceTimer) clearTimeout(this.debounceTimer);
-        this.state = 'resizing';
+        this.state = 'settling';
         this.debounceTimer = setTimeout(() => {
             this.debounceTimer = null;
             this.runFit();
