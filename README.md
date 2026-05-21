@@ -12,6 +12,8 @@ video thumbnails, quote cards — anywhere the text length varies but the output
 dimensions don't. Runs in Node (CLI, library, standalone binary) and in the
 browser; loads `.ttf` / `.otf` / `.ttc` directly; rasterizes to PNG via resvg.
 
+**[Try the playground →](https://fitfull.dev)**
+
 ## Features
 
 - **Two-dimensional fit** — solves for scale against width *and* height, not just width
