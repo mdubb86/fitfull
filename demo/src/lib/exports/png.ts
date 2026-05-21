@@ -1,9 +1,10 @@
 import { fit } from '$lib/fitfull/fit.svelte';
 import { box } from '$lib/state/box.svelte';
 import { buildBoxSizedSvg } from './box-svg';
+import { deriveFilename } from './filename';
 
 export async function downloadPng(
-    filename = 'fitfull-headline.png',
+    filename = deriveFilename('png'),
     scale = 1,
 ) {
     if (!fit.result) return;
