@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/mdubb86/fitfull/actions/workflows/ci.yml/badge.svg)](https://github.com/mdubb86/fitfull/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/fitfull.svg)](https://www.npmjs.com/package/fitfull)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/fitfull)](https://bundlephobia.com/package/fitfull)
 [![license](https://img.shields.io/npm/l/fitfull.svg)](./LICENSE)
 
 Fit text into a fixed-size box and output SVG or PNG.

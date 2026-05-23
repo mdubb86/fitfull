@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { program, Option } from 'commander';
 import { extname } from 'node:path';
-import * as fontkit from 'fontkit';
+import { openSync } from 'fontkit';
+import type { Font, FontCollection } from 'fontkit';
 import { Resvg } from '@resvg/resvg-wasm';
 import type { FitResult } from './fitfull.js';
 import { fitfull, type FitOptions } from './index.js';
@@ -55,11 +56,11 @@ function outputResult(result: FitResult, outputPath: string, elapsedMs: number) 
 /** Parse font argument - returns system font name or indicates it's a file path */
 function parseFontArg(fontArg: string): { font: string; weight: FontWeight } {
     if (existsSync(fontArg)) {
-        const result = fontkit.openSync(fontArg);
+        const result = openSync(fontArg);
         // Use first face if FontCollection
         const face = 'fonts' in result
-            ? (result as fontkit.FontCollection).fonts[0]
-            : result as fontkit.Font;
+            ? (result as FontCollection).fonts[0]
+            : result as Font;
 
         const family = String(face.familyName || fontArg);
         const subfamily = String(face.subfamilyName || 'Regular').toLowerCase();

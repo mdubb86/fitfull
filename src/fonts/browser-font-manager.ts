@@ -1,4 +1,4 @@
-import * as fontkit from 'fontkit';
+import { create } from 'fontkit';
 import type { Font } from 'fontkit';
 import type { Token, FontWeight } from '../types.js';
 import { normalizeFamily } from './normalize.js';
@@ -21,8 +21,8 @@ export class BrowserFontManager implements FontProvider {
     /** Parse and register a font from raw bytes. Family is normalized to match token lookups. */
     registerFont(family: string, weight: FontWeight, bytes: ArrayBuffer | Uint8Array): void {
         const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-        // fontkit.create() is typed for Node Buffer but accepts any Uint8Array at runtime.
-        const parsed = fontkit.create(u8 as Buffer);
+        // create() is typed for Node Buffer but accepts any Uint8Array at runtime.
+        const parsed = create(u8 as Buffer);
         if ('fonts' in parsed) {
             throw new Error(
                 `registerFont: "${family}" is a font collection (.ttc/.otc). ` +

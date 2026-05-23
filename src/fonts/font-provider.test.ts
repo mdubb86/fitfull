@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as fontkit from 'fontkit';
+import { create } from 'fontkit';
+import type { Font } from 'fontkit';
 import { FontStore } from './font-provider.js';
 import { readFileSync } from 'node:fs';
 
-function loadInter(): fontkit.Font {
+function loadInter(): Font {
     const buf = readFileSync('fonts/Inter-Regular.ttf');
-    return fontkit.create(buf) as fontkit.Font;
+    return create(buf) as Font;
 }
 
 test('FontStore.set then getFont returns the font', () => {

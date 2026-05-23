@@ -1,5 +1,5 @@
-import * as fontkit from 'fontkit';
-import type { Font } from 'fontkit';
+import { openSync } from 'fontkit';
+import type { Font, FontCollection } from 'fontkit';
 import getSystemFontsModule from 'get-system-fonts';
 
 // Handle both ESM default export and CommonJS
@@ -15,13 +15,13 @@ import { basename, extname } from 'node:path';
 
 
 /** Load a single font face from a file path (not collection-aware; returns first face). */
-function loadFont(fontPath: string): fontkit.Font | null {
+function loadFont(fontPath: string): Font | null {
     try {
-        const result = fontkit.openSync(fontPath);
+        const result = openSync(fontPath);
         if ('fonts' in result) {
-            return (result as fontkit.FontCollection).fonts[0] ?? null;
+            return (result as FontCollection).fonts[0] ?? null;
         }
-        return result as fontkit.Font;
+        return result as Font;
     } catch {
         return null;
     }
@@ -31,19 +31,19 @@ function loadFont(fontPath: string): fontkit.Font | null {
  * Load a font from an indexed path (may be "path#postscriptName" for collections).
  * Returns the specific face from a TTC, or the single font otherwise.
  */
-function loadFontFromIndexedPath(indexedPath: string): fontkit.Font | null {
+function loadFontFromIndexedPath(indexedPath: string): Font | null {
     const hashIdx = indexedPath.lastIndexOf('#');
     if (hashIdx !== -1) {
         const filePath = indexedPath.slice(0, hashIdx);
         const postscriptName = indexedPath.slice(hashIdx + 1);
         try {
-            const result = fontkit.openSync(filePath);
+            const result = openSync(filePath);
             if ('fonts' in result) {
-                const collection = result as fontkit.FontCollection;
+                const collection = result as FontCollection;
                 const face = collection.getFont(postscriptName);
                 return face ?? collection.fonts[0] ?? null;
             }
-            return result as fontkit.Font;
+            return result as Font;
         } catch {
             return null;
         }
@@ -188,7 +188,7 @@ export class NodeFontManager implements FontProvider {
             const index = new Map<string, Map<string, string>>();
             const paths = await this.systemFontsProvider();
 
-            const addFace = (font: fontkit.Font, indexedPath: string) => {
+            const addFace = (font: Font, indexedPath: string) => {
                 const family = String(font.familyName || '').toLowerCase();
                 const subfamily = String(font.subfamilyName || 'regular').toLowerCase();
                 if (!family) return;
@@ -200,16 +200,16 @@ export class NodeFontManager implements FontProvider {
 
             await pMap(paths, async (fontPath: string) => {
                 try {
-                    const result = fontkit.openSync(fontPath);
+                    const result = openSync(fontPath);
                     if ('fonts' in result) {
                         // FontCollection: enumerate each face
-                        const collection = result as fontkit.FontCollection;
+                        const collection = result as FontCollection;
                         for (const face of collection.fonts) {
                             const indexedPath = `${fontPath}#${face.postscriptName}`;
                             addFace(face, indexedPath);
                         }
                     } else {
-                        addFace(result as fontkit.Font, fontPath);
+                        addFace(result as Font, fontPath);
                     }
                 } catch {
                     // skip unreadable fonts

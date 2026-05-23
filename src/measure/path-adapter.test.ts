@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as fontkit from 'fontkit';
+import { openSync } from 'fontkit';
 import { flipY, transformPath, toPathData, composeGlyphRunPath, type PathCommand } from './path-adapter.js';
 
 function commandsXRange(commands: PathCommand[]): { minX: number; maxX: number } {
@@ -89,7 +89,7 @@ test('toPathData precision 0 rounds to integers', () => {
 });
 
 test('composeGlyphRunPath produces a Path-shaped object for "Hi" rendered at 64pt', () => {
-    const font = fontkit.openSync('fonts/Inter-Regular.ttf');
+    const font = openSync('fonts/Inter-Regular.ttf');
     if ('fonts' in font) throw new Error('expected single font, got collection');
 
     const path = composeGlyphRunPath(font as any, 'Hi', 0, 100, 64);
@@ -103,7 +103,7 @@ test('composeGlyphRunPath produces a Path-shaped object for "Hi" rendered at 64p
 });
 
 test('composeGlyphRunPath applies GPOS kerning', () => {
-    const font = fontkit.openSync('fonts/Inter-Regular.ttf') as any;
+    const font = openSync('fonts/Inter-Regular.ttf') as any;
     const scale = 64 / font.unitsPerEm;
 
     // Bare advance widths summed — no GPOS, no layout
