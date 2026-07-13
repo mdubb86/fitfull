@@ -150,7 +150,7 @@ export function lineToSVG(line: MeasuredLine, options: {
     if (blurKeys.size > 0) {
         svg += '  <defs>\n';
         for (const key of blurKeys) {
-            svg += `    <filter id="${filterId(key)}" x="-20%" y="-20%" width="140%" height="140%">\n`;
+            svg += `    <filter id="${filterId(key)}" x="-50%" y="-50%" width="200%" height="200%">\n`;
             svg += `      <feGaussianBlur stdDeviation="${key}"/>\n`;
             svg += '    </filter>\n';
         }
@@ -259,7 +259,7 @@ export function layoutToSVG(
     if (blurKeys.size > 0) {
         svg += '  <defs>\n';
         for (const key of blurKeys) {
-            svg += `    <filter id="${filterId(key)}" x="-20%" y="-20%" width="140%" height="140%">\n`;
+            svg += `    <filter id="${filterId(key)}" x="-50%" y="-50%" width="200%" height="200%">\n`;
             svg += `      <feGaussianBlur stdDeviation="${key}"/>\n`;
             svg += '    </filter>\n';
         }

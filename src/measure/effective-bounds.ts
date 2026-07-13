@@ -10,7 +10,13 @@ import type { TokenMetrics, Shadow } from '../types.js';
  *   offsetX < 0  → shadow extends left  (grows advanceWidth + shifts leftBearing left)
  *   offsetY > 0  → shadow extends down  (grows tightBottom — screen coords)
  *   offsetY < 0  → shadow extends up    (grows tightTop, i.e. shifts more negative)
- *   blur > 0     → symmetric ~3σ inflation on all four sides
+ *   blur > 0     → symmetric ~2σ inflation on all four sides
+ *
+ * The 2σ choice for fit-time captures ~95% of the gaussian intensity — the
+ * remaining tail (~5%) is visually imperceptible, so text doesn't shrink
+ * more than it needs to. Earlier iterations used 3σ (~99.7%) but that over-
+ * reserved space and made text visibly shrink as blur grew even though the
+ * user could not see the extra tail.
  *
  * Note on arithmetic order: the additions below are written to be
  * IEEE-754 bit-exact with the values the test suite computes independently
@@ -19,6 +25,8 @@ import type { TokenMetrics, Shadow } from '../types.js';
  * `(a + b) + c` is not always bit-identical to `a + (b + c)`). All forms
  * are mathematically equivalent; only the rounding of the last bit differs.
  */
+const BLUR_FIT_SIGMA = 2;
+
 export function inflateForShadow(
     metrics: TokenMetrics,
     shadow: Shadow | undefined,
@@ -28,7 +36,7 @@ export function inflateForShadow(
     const sx = shadow.offsetX * tokenSize;
     const sy = shadow.offsetY * tokenSize;
     const blur = (shadow.blur ?? 0) * tokenSize;
-    const blurExtra = 3 * blur;
+    const blurExtra = BLUR_FIT_SIGMA * blur;
 
     const sxPos = Math.max(0, sx);
     const sxNeg = Math.max(0, -sx);

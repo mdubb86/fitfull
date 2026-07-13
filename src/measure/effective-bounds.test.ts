@@ -53,10 +53,10 @@ test('negative offsetY grows tightTop (moves upward)', () => {
     assert.equal(out.tightBottom, 2);
 });
 
-test('blur inflates symmetrically by 3 * blur * tokenSize on all sides', () => {
+test('blur inflates symmetrically by 2 * blur * tokenSize on all sides', () => {
     const shadow: Shadow = { offsetX: 0, offsetY: 0, blur: 0.02 };
     const out = inflateForShadow(base, shadow, 1);
-    const extra = 3 * 0.02; // 0.06
+    const extra = 2 * 0.02; // 0.04
     assert.equal(out.advanceWidth, 10 + 2 * extra);
     assert.equal(out.leftBearing, 1 - extra);
     assert.equal(out.tightRight, 9 + extra);
@@ -67,9 +67,14 @@ test('blur inflates symmetrically by 3 * blur * tokenSize on all sides', () => {
 test('offset + blur combine additively', () => {
     const shadow: Shadow = { offsetX: 0.05, offsetY: 0.03, blur: 0.02 };
     const out = inflateForShadow(base, shadow, 1);
-    const blurExtra = 3 * 0.02;
-    // right: 0.05 + blur; left: 0 + blur
-    assert.equal(out.advanceWidth, 10 + (0.05 + blurExtra) + (0 + blurExtra));
+    const blurExtra = 2 * 0.02;
+    // Group additions to match the impl's evaluation order — the sums are
+    // mathematically identical, but IEEE-754 rounding differs by 1 ULP if
+    // the parenthesization changes. (Long-standing follow-up: switch all
+    // these to epsilon comparisons and restore natural impl grouping.)
+    const leftExtra = 0 + blurExtra;
+    const rightExtra = 0.05 + blurExtra;
+    assert.equal(out.advanceWidth, 10 + (leftExtra + rightExtra));
     assert.equal(out.tightRight, 9 + 0.05 + blurExtra);
     assert.equal(out.leftBearing, 1 - blurExtra);
     assert.equal(out.tightTop, -8 - blurExtra);
