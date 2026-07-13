@@ -203,6 +203,65 @@ describe('SVG render snapshots', () => {
         });
         assertSnapshot('tokens-kerned', result.svg);
     });
+
+    test('shadow-hard: top-level hard shadow', async () => {
+        const ff = Fitfull.create();
+        const tokens: Token[] = [
+            { text: 'Shadow', size: 2, font: INTER_BOLD, weight: 'bold' },
+            { text: ' ',      size: 2, font: INTER_BOLD, weight: 'bold' },
+            { text: 'Demo',   size: 2, font: INTER_REGULAR, weight: 'regular' },
+        ];
+        // `shadow` isn't on FitOptionsBase yet (Task 6 adds it) — cast to keep
+        // this test runnable against Task 4's rendering support in the meantime.
+        const result = await ff.fit({
+            tokens,
+            width: 480,
+            height: 140,
+            wrap: 'greedy',
+            align: 'center',
+            shadow: { offsetX: 0.05, offsetY: 0.05, blur: 0, color: 'rgba(0,0,0,0.5)' },
+        } as any);
+        assertSnapshot('shadow-hard', result.svg);
+    });
+
+    test('shadow-soft: top-level soft (blurred) shadow', async () => {
+        const ff = Fitfull.create();
+        const tokens: Token[] = [
+            { text: 'Shadow', size: 2, font: INTER_BOLD, weight: 'bold' },
+            { text: ' ',      size: 2, font: INTER_BOLD, weight: 'bold' },
+            { text: 'Demo',   size: 2, font: INTER_REGULAR, weight: 'regular' },
+        ];
+        const result = await ff.fit({
+            tokens,
+            width: 480,
+            height: 140,
+            wrap: 'greedy',
+            align: 'center',
+            shadow: { offsetX: 0.03, offsetY: 0.04, blur: 0.025, color: 'rgba(0,0,0,0.45)' },
+        } as any);
+        assertSnapshot('shadow-soft', result.svg);
+    });
+
+    test('shadow-mixed: per-token override on top of top-level default', async () => {
+        const ff = Fitfull.create();
+        const tokens: Token[] = [
+            { text: 'One', size: 2, font: INTER_BOLD, weight: 'bold' },
+            { text: ' ',   size: 2, font: INTER_BOLD, weight: 'bold' },
+            {
+                text: 'Two', size: 2, font: INTER_REGULAR, weight: 'regular',
+                shadow: { offsetX: -0.04, offsetY: 0.02, blur: 0.015, color: 'rgba(50,0,120,0.6)' },
+            },
+        ];
+        const result = await ff.fit({
+            tokens,
+            width: 480,
+            height: 140,
+            wrap: 'greedy',
+            align: 'center',
+            shadow: { offsetX: 0.05, offsetY: 0.05, blur: 0, color: 'rgba(0,0,0,0.5)' },
+        } as any);
+        assertSnapshot('shadow-mixed', result.svg);
+    });
 });
 
 test('SVG output contains a viewBox matching width and height', async () => {

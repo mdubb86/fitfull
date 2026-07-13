@@ -117,10 +117,14 @@ export class FitfullCore {
         const result = fitter.computeBestFit();
 
         // Render to SVG
+        // NOTE: `shadow` is not yet part of `FitOptionsBase` (that's Task 6's job).
+        // Forward it via an `any` escape hatch so shadow rendering (Task 4) is
+        // actually reachable for snapshot coverage (Task 5) in the meantime.
         const svg = layoutToSVG(result.layout, {
             color: options.color,
             background: options.background,
             annotate: options.annotate,
+            shadow: (options as any).shadow,
         });
 
         // Tight text bounding box across all positioned lines.
