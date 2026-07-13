@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { parseFontString, mapWeight, inputTokensToTokens, InputTokenArraySchema } from './schema.js';
+import { parseFontString, mapWeight, inputTokensToTokens, InputTokenArraySchema, ShadowSchema, InputTokenSchema } from './schema.js';
 
 describe('parseFontString', () => {
     test('plain family name', () => {
@@ -101,4 +101,32 @@ describe('inputTokensToTokens', () => {
         const result = inputTokensToTokens(input, resolver);
         assert.strictEqual(result[0].weight, 'bolditalic');
     });
+});
+
+test('ShadowSchema accepts a full shadow object', () => {
+    const parsed = ShadowSchema.parse({ offsetX: 0.05, offsetY: 0.05, blur: 0.02, color: 'black' });
+    assert.equal(parsed.offsetX, 0.05);
+    assert.equal(parsed.blur, 0.02);
+});
+
+test('ShadowSchema accepts partial (blur + color omitted)', () => {
+    const parsed = ShadowSchema.parse({ offsetX: 0.05, offsetY: -0.03 });
+    assert.equal(parsed.blur, undefined);
+    assert.equal(parsed.color, undefined);
+});
+
+test('ShadowSchema rejects negative blur', () => {
+    assert.throws(() => ShadowSchema.parse({ offsetX: 0, offsetY: 0, blur: -0.01 }));
+});
+
+test('ShadowSchema rejects missing offsetX', () => {
+    assert.throws(() => ShadowSchema.parse({ offsetY: 0.05 }));
+});
+
+test('InputTokenSchema accepts a shadow field', () => {
+    const parsed = InputTokenSchema.parse({
+        text: 'Hi', size: 1, font: 'Inter',
+        shadow: { offsetX: 0.05, offsetY: 0.05 },
+    });
+    assert.equal(parsed.shadow?.offsetX, 0.05);
 });

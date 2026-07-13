@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import type { Token } from './types.js';
 
+export const ShadowSchema = z.object({
+    offsetX: z.number(),
+    offsetY: z.number(),
+    blur: z.number().min(0).optional(),
+    color: z.string().optional(),
+});
+export type InputShadow = z.infer<typeof ShadowSchema>;
+
 /**
  * Input token schema - what users provide via CLI/JSON
  * Font is a string like "Inter Bold" that gets parsed into family + weight
@@ -10,6 +18,7 @@ export const InputTokenSchema = z.object({
     size: z.number().positive(),
     font: z.string(),  // "Inter", "Inter Bold", "Arial Light Italic", etc.
     color: z.string().optional(),  // optional per-token fill color (validated at render time)
+    shadow: ShadowSchema.optional(),  // optional per-token shadow override
 });
 
 export type InputToken = z.infer<typeof InputTokenSchema>;
@@ -78,6 +87,7 @@ export function inputTokenToToken(
         font: fontKey,
         weight,
         ...(input.color !== undefined ? { color: input.color } : {}),
+        ...(input.shadow !== undefined ? { shadow: input.shadow } : {}),
     };
 }
 
