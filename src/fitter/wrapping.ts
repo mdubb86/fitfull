@@ -1,6 +1,6 @@
-import type { Token, TokenMetrics } from '../types.js';
+import type { Token, TokenMetrics, Shadow } from '../types.js';
 import type { FontProvider } from '../fonts/index.js';
-import { getLineMetrics, measureSingleTokenMetrics } from '../measure/index.js';
+import { getLineMetrics, measureSingleTokenMetrics, inflateForShadow } from '../measure/index.js';
 
 /**
  * Look up token metrics from the map; if not found (because trimLineWhitespace
@@ -10,15 +10,28 @@ import { getLineMetrics, measureSingleTokenMetrics } from '../measure/index.js';
  * This is the canonical fix for the object-identity mismatch: trimmed tokens
  * are not in the map because Map uses reference equality, but their metrics
  * can be recomputed from the token's own fields (font, weight, size, text).
+ *
+ * Freshly-computed fallback metrics are shadow-unaware by default (they come
+ * straight from `measureSingleTokenMetrics`), so we inflate them here using
+ * the effective shadow: the token's own `shadow` if set (trimLineWhitespace's
+ * clone preserves it via spread), otherwise the caller's top-level default.
+ * Without this, a boundary-trimmed token silently loses its shadow's bbox
+ * contribution and the fitter can pick a scale that lets the shadow bleed
+ * past the box.
  */
 export function getOrComputeTokenMetrics(
     token: Token,
     tokenMetricsMap: Map<Token, TokenMetrics>,
-    fonts: FontProvider
+    fonts: FontProvider,
+    topLevelShadow?: Shadow
 ): TokenMetrics {
     let metrics = tokenMetricsMap.get(token);
     if (metrics === undefined) {
         metrics = measureSingleTokenMetrics(token, fonts);
+        const eff = token.shadow ?? topLevelShadow;
+        if (eff) {
+            metrics = inflateForShadow(metrics, eff, token.size);
+        }
         tokenMetricsMap.set(token, metrics);
     }
     return metrics;

@@ -311,4 +311,30 @@ describe('Fitfull', () => {
         assert.ok(result.width  <= 469 + 0.01, `width  ${result.width}  > 469`);
         assert.ok(result.height <= 554 + 0.01, `height ${result.height} > 554`);
     });
+
+    test('regression: shadow + boundary-trimmed token still fits and renders without throwing', async () => {
+        // Companion end-to-end smoke test for the boundary-trim shadow bug (see the
+        // targeted unit-level regression tests in src/fitter/wrapping.test.ts, which
+        // directly assert on the inflated metrics — FitResult.width/height are the
+        // text's tight glyph bbox and never include shadow extent, so they can't
+        // observe this bug directly). This just exercises the full greedy-wrap +
+        // shadow + trailing-whitespace-token path end-to-end and confirms the box
+        // constraint (computeBestFit's own post-hoc validator) still holds.
+        const ff = Fitfull.create();
+        const tokens = [
+            { text: 'Alpha ', size: 1, font: INTER_BOLD, weight: 'bold' as const },
+        ];
+        const shadow = { offsetX: 0.3, offsetY: 0.3 };
+        const result = await ff.fit({
+            tokens,
+            width: 200,
+            height: 80,
+            wrap: 'greedy',
+            align: 'left',
+            shadow,
+        } as any);
+
+        assert.ok(result.width  <= 200 + 0.01, `width ${result.width} exceeds 200`);
+        assert.ok(result.height <= 80 + 0.01, `height ${result.height} exceeds 80`);
+    });
 });

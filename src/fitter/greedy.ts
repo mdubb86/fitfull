@@ -47,7 +47,7 @@ export function findGreedyFit(ctx: SearchContext): SearchResult | undefined {
 
         // Check if it fits
         const lineTokenMetrics = arrangement.map(line =>
-            line.map(token => getOrComputeTokenMetrics(token, ctx.tokenMetricsMap, ctx.fonts))
+            line.map(token => getOrComputeTokenMetrics(token, ctx.tokenMetricsMap, ctx.fonts, ctx.shadow))
         );
 
         const metrics = getArrangementMetrics(

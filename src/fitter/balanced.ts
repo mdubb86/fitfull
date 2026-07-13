@@ -34,7 +34,7 @@ export function findBalancedFit(ctx: SearchContext): SearchResult | undefined {
         arrangements++;
 
         const lineTokenMetrics = trimmed.map(line =>
-            line.map(token => getOrComputeTokenMetrics(token, ctx.tokenMetricsMap, ctx.fonts))
+            line.map(token => getOrComputeTokenMetrics(token, ctx.tokenMetricsMap, ctx.fonts, ctx.shadow))
         );
 
         const metrics = getArrangementMetrics(

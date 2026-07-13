@@ -153,6 +153,7 @@ export default class Fitter {
             totalTokenWidth,
             maxTextHeight: this.maxTextHeight,
             deadline: this.deadline,
+            shadow: this.shadow,
         };
 
         const result = this.wrap === 'greedy'
