@@ -4,8 +4,8 @@
     import { box } from '$lib/state/box.svelte';
     import { fit } from '$lib/fitfull/fit.svelte';
     import { ui } from '$lib/state/ui.svelte';
+    import type { Shadow } from 'fitfull/browser';
     import ColorPickerButton from './ColorPickerButton.svelte';
-    import ShadowControls from './ShadowControls.svelte';
 
     function onDimInput() {
         // bind:value wrote the raw input straight to box.width/box.height —
@@ -72,6 +72,37 @@
         onValueChangeEnd: () => fit.scheduleFit(0),
     }));
     const linesApi = $derived(slider.connect(linesService, normalizeProps));
+
+    // Shadow section — presets + helpers. All handlers call fit.scheduleFit(0)
+    // explicitly to match the sibling controls' pattern (setWrap, setAlign,
+    // onSpacingChange) rather than relying on the auto-refit $effect.
+    const HARD: Shadow = { offsetX: 0.05, offsetY: 0.05, blur: 0,     color: 'rgba(0,0,0,0.5)' };
+    const SOFT: Shadow = { offsetX: 0.03, offsetY: 0.04, blur: 0.025, color: 'rgba(0,0,0,0.45)' };
+
+    function shadowEq(a: Shadow, b: Shadow): boolean {
+        return a.offsetX === b.offsetX
+            && a.offsetY === b.offsetY
+            && (a.blur  ?? 0)  === (b.blur  ?? 0)
+            && (a.color ?? '') === (b.color ?? '');
+    }
+    function isHard(s: Shadow | null): boolean { return s !== null && shadowEq(s, HARD); }
+    function isSoft(s: Shadow | null): boolean { return s !== null && shadowEq(s, SOFT); }
+    function shadowLabel(s: Shadow | null): 'off' | 'hard' | 'soft' | 'custom' {
+        if (s === null) return 'off';
+        if (isHard(s)) return 'hard';
+        if (isSoft(s)) return 'soft';
+        return 'custom';
+    }
+
+    function setShadowPreset(preset: Shadow | null) {
+        box.setShadow(preset === null ? null : { ...preset });
+        fit.scheduleFit(0);
+    }
+    function onShadowChange() { fit.scheduleFit(0); }
+    function setShadowColor(c: string) {
+        if (box.shadow) box.shadow.color = c;
+        fit.scheduleFit(0);
+    }
 </script>
 
 <aside class="sheet sheet-right" class:collapsed={ui.rightCollapsed}>
@@ -210,7 +241,60 @@
                         label="Background color"
                     />
                 </div>
-                <ShadowControls />
+            </div>
+        </div>
+
+        <!-- Shadow -->
+        <div class="section">
+            <div class="section-head">
+                <span class="name">
+                    <span class="dot"></span>
+                    Shadow
+                </span>
+                <span class="val">{shadowLabel(box.shadow)}</span>
+            </div>
+            <div class="section-body">
+                <div class="minigroup">
+                    <button class:active={box.shadow === null} onclick={() => setShadowPreset(null)}>Off</button>
+                    <button class:active={isHard(box.shadow)}  onclick={() => setShadowPreset(HARD)}>Hard</button>
+                    <button class:active={isSoft(box.shadow)}  onclick={() => setShadowPreset(SOFT)}>Soft</button>
+                </div>
+                {#if box.shadow}
+                    <div class="field">
+                        <div class="field-head">
+                            <span class="lbl">Offset X</span>
+                            <span class="val">{box.shadow.offsetX.toFixed(3)}em</span>
+                        </div>
+                        <input class="slider" type="range" min="-0.2" max="0.2" step="0.005"
+                               bind:value={box.shadow.offsetX} oninput={onShadowChange} />
+                    </div>
+                    <div class="field">
+                        <div class="field-head">
+                            <span class="lbl">Offset Y</span>
+                            <span class="val">{box.shadow.offsetY.toFixed(3)}em</span>
+                        </div>
+                        <input class="slider" type="range" min="-0.2" max="0.2" step="0.005"
+                               bind:value={box.shadow.offsetY} oninput={onShadowChange} />
+                    </div>
+                    <div class="field">
+                        <div class="field-head">
+                            <span class="lbl">Blur</span>
+                            <span class="val">{(box.shadow.blur ?? 0).toFixed(3)}em</span>
+                        </div>
+                        <input class="slider" type="range" min="0" max="0.15" step="0.005"
+                               bind:value={box.shadow.blur} oninput={onShadowChange} />
+                    </div>
+                    <div class="field color-field">
+                        <div class="field-head">
+                            <span class="lbl">Color</span>
+                            <span class="val">{colorLabel(box.shadow.color ?? '#000000')}</span>
+                        </div>
+                        <ColorPickerButton block
+                                           color={box.shadow.color ?? 'rgba(0,0,0,0.5)'}
+                                           onChange={setShadowColor}
+                                           label="Shadow color" />
+                    </div>
+                {/if}
             </div>
         </div>
     </div>
