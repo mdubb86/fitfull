@@ -26,6 +26,8 @@ interface SharedState {
         wrap: 'balanced' | 'greedy';
         align: 'left' | 'center' | 'right';
         ls: number;
+        /** Serialized shadow. Omitted when null/undefined. */
+        sh?: { ox: number; oy: number; b?: number; c?: string };
     };
     fonts: string[];
 }
@@ -89,6 +91,16 @@ function snapshot(): SharedState {
             wrap: box.wrap,
             align: box.align,
             ls: box.lineSpacing,
+            ...(box.shadow
+                ? {
+                    sh: {
+                        ox: box.shadow.offsetX,
+                        oy: box.shadow.offsetY,
+                        ...(box.shadow.blur !== undefined ? { b: box.shadow.blur } : {}),
+                        ...(box.shadow.color !== undefined ? { c: box.shadow.color } : {}),
+                    },
+                }
+                : {}),
         },
         fonts: [...fontNames],
     };
@@ -134,6 +146,16 @@ export async function applyHashFromUrl(): Promise<void> {
     box.wrap = state.box.wrap;
     box.align = state.box.align;
     box.lineSpacing = state.box.ls;
+    if (state.box.sh) {
+        box.setShadow({
+            offsetX: state.box.sh.ox,
+            offsetY: state.box.sh.oy,
+            blur: state.box.sh.b,
+            color: state.box.sh.c,
+        });
+    } else {
+        box.setShadow(null);
+    }
     doc.pmJson = state.doc;
 
     // Kick font loads in parallel — don't await, the registry updates reactively.
