@@ -83,7 +83,7 @@ class FitState {
 
 export const fit = new FitState();
 
-// Refit on token changes AND on text/bg color changes — those flow into the
+// Refit on token changes AND on text/bg/shadow changes — those flow into the
 // rendered SVG output so a change requires a re-render. Box dims/wrap/align/
 // spacing are already handled by Canvas.svelte's effect on drag end.
 $effect.root(() => {
@@ -91,6 +91,7 @@ $effect.root(() => {
         doc.tokens;
         box.textColor;
         box.bgColor;
+        box.shadow;
         fit.scheduleFit();
     });
 });
