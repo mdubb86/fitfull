@@ -47,6 +47,31 @@ function assertValidShadow(shadow: Shadow, where: string): void {
 }
 
 /**
+ * Compute per-side output-space shadow inflation across a set of tokens so
+ * the SVG viewBox can be expanded to include the shadow. Without this the
+ * viewBox is tight to the raw glyph bbox and viewers clip the shadow.
+ */
+function shadowInflation(
+    lines: readonly MeasuredLine[],
+    topLevelShadow: Shadow | undefined,
+): { left: number; right: number; top: number; bottom: number } {
+    let left = 0, right = 0, top = 0, bottom = 0;
+    for (const line of lines) {
+        for (const mt of line.tokens) {
+            const eff = mt.token.shadow ?? topLevelShadow;
+            if (!eff) continue;
+            const { dx, dy, blurPx } = shadowDeltas(eff, mt.token.size);
+            const extra = 3 * blurPx;
+            left   = Math.max(left,   Math.max(0, -dx) + extra);
+            right  = Math.max(right,  Math.max(0,  dx) + extra);
+            top    = Math.max(top,    Math.max(0, -dy) + extra);
+            bottom = Math.max(bottom, Math.max(0,  dy) + extra);
+        }
+    }
+    return { left, right, top, bottom };
+}
+
+/**
  * Render a measured line to an SVG string
  */
 export function lineToSVG(line: MeasuredLine, options: {
@@ -96,13 +121,18 @@ export function lineToSVG(line: MeasuredLine, options: {
 
     const bbox = line.tightBbox;
 
-    // SVG dimensions - use exact values for tight fit
-    const width = bbox.width + padding * 2;
-    const height = bbox.height + padding * 2;
+    // Expand tight bbox by the max shadow extent on each side so the viewBox
+    // includes the shadow. Without this the shadow renders past the viewport
+    // and viewers clip it.
+    const infl = shadowInflation([line], options.shadow);
 
-    // Offset to translate paths so tight bbox starts at (padding, padding)
-    const offsetX = -bbox.x1 + padding;
-    const offsetY = -bbox.y1 + padding;
+    const width = bbox.width + padding * 2 + infl.left + infl.right;
+    const height = bbox.height + padding * 2 + infl.top + infl.bottom;
+
+    // Offset to translate paths so tight bbox starts at (padding + infl.left,
+    // padding + infl.top) — leaves room for shadow on the negative side.
+    const offsetX = -bbox.x1 + padding + infl.left;
+    const offsetY = -bbox.y1 + padding + infl.top;
 
     let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width.toFixed(2)}" height="${height.toFixed(2)}" viewBox="0 0 ${width.toFixed(2)} ${height.toFixed(2)}" overflow="visible"`;
     if (background) {
@@ -205,8 +235,13 @@ export function layoutToSVG(
         return '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>';
     }
 
-    const width = layout.width + padding * 2;
-    const height = layout.height + padding * 2;
+    // Expand the viewBox to include shadow extent — layout.width/height are
+    // shadow-blind (they come from raw glyph paths), so without this the
+    // shadow renders past the viewport and viewers clip it.
+    const infl = shadowInflation(layout.lines.map(l => l.measured), options.shadow);
+
+    const width = layout.width + padding * 2 + infl.left + infl.right;
+    const height = layout.height + padding * 2 + infl.top + infl.bottom;
 
     let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width.toFixed(2)}" height="${height.toFixed(2)}" viewBox="0 0 ${width.toFixed(2)} ${height.toFixed(2)}" overflow="visible"`;
     if (background) {
@@ -226,8 +261,8 @@ export function layoutToSVG(
 
     // First pass: render all text paths
     for (const posLine of layout.lines) {
-        const lineOffsetX = posLine.x + padding;
-        const lineOffsetY = posLine.y + padding;
+        const lineOffsetX = posLine.x + padding + infl.left;
+        const lineOffsetY = posLine.y + padding + infl.top;
 
         for (const measured of posLine.measured.tokens) {
             if (measured.path.commands.length === 0) continue;
@@ -253,11 +288,11 @@ export function layoutToSVG(
     if (annotate) {
         for (let lineIdx = 0; lineIdx < layout.lines.length; lineIdx++) {
             const posLine = layout.lines[lineIdx];
-            const lineOffsetX = posLine.x + padding;
-            const baselineY = posLine.baseline + padding;
+            const lineOffsetX = posLine.x + padding + infl.left;
+            const baselineY = posLine.baseline + padding + infl.top;
 
             // Green box around line's tight bounding box
-            const lineVisualY = posLine.y + padding + posLine.measured.tightBbox.y1;
+            const lineVisualY = posLine.y + padding + infl.top + posLine.measured.tightBbox.y1;
             svg += `  <rect x="${(lineOffsetX + posLine.measured.tightBbox.x1).toFixed(2)}" y="${lineVisualY.toFixed(2)}" `;
             svg += `width="${posLine.width.toFixed(2)}" height="${posLine.height.toFixed(2)}" `;
             svg += `fill="none" stroke="green" stroke-width="1"/>\n`;
@@ -269,7 +304,7 @@ export function layoutToSVG(
             // Blue box around each token's bounding box
             for (const measured of posLine.measured.tokens) {
                 if (measured.path.commands.length > 0) {
-                    const tokenY = posLine.y + padding + measured.bboxY1;
+                    const tokenY = posLine.y + padding + infl.top + measured.bboxY1;
                     svg += `  <rect x="${(lineOffsetX + measured.bboxX1).toFixed(2)}" y="${tokenY.toFixed(2)}" `;
                     svg += `width="${(measured.bboxX2 - measured.bboxX1).toFixed(2)}" height="${(measured.bboxY2 - measured.bboxY1).toFixed(2)}" `;
                     svg += `fill="none" stroke="blue" stroke-width="0.5"/>\n`;
@@ -279,7 +314,7 @@ export function layoutToSVG(
             // Red vertical spacing indicator (baseline to baseline)
             if (lineIdx < layout.lines.length - 1) {
                 const nextLine = layout.lines[lineIdx + 1];
-                const nextBaselineY = nextLine.baseline + padding;
+                const nextBaselineY = nextLine.baseline + padding + infl.top;
                 const baselineDistance = nextBaselineY - baselineY;
                 const midX = width - 20;
 
