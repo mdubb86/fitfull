@@ -106,6 +106,30 @@ describe('CLI happy paths', () => {
         unlinkSync(tokensPath);
         unlinkSync(out);
     });
+
+    test('CLI: JSON tokens with shadow field emit shadow markup in SVG', () => {
+        const tokensPath = tmp('tokens-shadow.json');
+        writeFileSync(tokensPath, JSON.stringify([
+            { text: 'Hi', size: 1, font: 'Inter Bold', shadow: { offsetX: 0.05, offsetY: 0.05, color: 'rgba(0,0,0,0.5)' } },
+        ]));
+        const out = tmp('tokens-shadow.svg');
+
+        const result = runCli([
+            '--tokens', tokensPath,
+            '--font', join(ROOT, 'fonts', 'Inter-Bold.ttf'),
+            '--size', '400x100',
+            '-o', out,
+        ]);
+
+        assert.strictEqual(result.status, 0, `expected exit 0, got ${result.status}\n${result.stderr}`);
+        assert.ok(existsSync(out));
+        const svg = readFileSync(out, 'utf-8');
+        assert.ok(svg.startsWith('<svg'));
+        assert.ok(svg.includes('rgba(0,0,0,0.5)'), 'expected shadow color in SVG output');
+
+        unlinkSync(tokensPath);
+        unlinkSync(out);
+    });
 });
 
 describe('CLI stdin and output dispatch', () => {
