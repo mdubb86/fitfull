@@ -290,7 +290,7 @@
                             <span class="val">{colorLabel(box.shadow.color ?? '#000000')}</span>
                         </div>
                         <ColorPickerButton block
-                                           color={box.shadow.color ?? 'rgba(0,0,0,0.5)'}
+                                           color={box.shadow?.color ?? 'rgba(0,0,0,0.5)'}
                                            onChange={setShadowColor}
                                            label="Shadow color" />
                     </div>

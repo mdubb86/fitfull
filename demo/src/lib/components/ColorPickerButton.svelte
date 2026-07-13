@@ -57,14 +57,17 @@
     // Sync the (uncontrolled) machine to the parent's color prop whenever it
     // changes — so opening the picker shows the CURRENT color in the
     // saturation/brightness area, hex input, and hue slider, not whatever the
-    // picker was originally initialized with. Compare hex first so this is a
-    // no-op when the parent change was a result of THIS picker (avoids loops
-    // and avoids fighting an in-progress drag).
+    // picker was originally initialized with. Normalize both sides through
+    // colorPicker.parse so rgba/hex/named color props compare equally to the
+    // machine's hex output — otherwise the effect writes on every tick when
+    // the parent passes a format the picker converts internally, and the
+    // read-after-write triggers the effect again (infinite loop).
     $effect(() => {
-        const target = (color || '#000000').toLowerCase();
+        const parsed = colorPicker.parse(color || '#000000');
+        const target = parsed.toString('hex').toLowerCase();
         const currentHex = api.value?.toString('hex')?.toLowerCase();
         if (currentHex !== target) {
-            api.setValue(colorPicker.parse(target));
+            api.setValue(parsed);
         }
     });
 </script>
