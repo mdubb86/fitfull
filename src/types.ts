@@ -7,6 +7,18 @@ export type FontWeight = 'regular' | 'bold' | 'italic' | 'bolditalic';
 /** Horizontal alignment */
 export type Alignment = 'left' | 'center' | 'right';
 
+/** Drop shadow config. Offset/blur are em-relative to the token's own size. */
+export type Shadow = {
+    /** Horizontal offset in em (multiplied by token.size). Negative = left. */
+    offsetX: number;
+    /** Vertical offset in em (multiplied by token.size). Negative = up. */
+    offsetY: number;
+    /** Gaussian blur radius in em. Default 0 = crisp/hard shadow. */
+    blur?: number;
+    /** CSS shadow color. Default 'rgba(0,0,0,0.5)'. */
+    color?: string;
+};
+
 /** Input token - what the user provides */
 export type Token = {
     text: string;
@@ -15,6 +27,8 @@ export type Token = {
     weight: 'regular' | 'bold' | 'italic' | 'bolditalic';
     /** Optional per-token fill color. Overrides the top-level `color` option for this token. */
     color?: string;
+    /** Optional per-token drop shadow. Overrides top-level `shadow` when set. */
+    shadow?: Shadow;
 };
 
 /** Measured token with positioning info */
