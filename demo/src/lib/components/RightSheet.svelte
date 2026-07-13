@@ -5,6 +5,7 @@
     import { fit } from '$lib/fitfull/fit.svelte';
     import { ui } from '$lib/state/ui.svelte';
     import ColorPickerButton from './ColorPickerButton.svelte';
+    import ShadowControls from './ShadowControls.svelte';
 
     function onDimInput() {
         // bind:value wrote the raw input straight to box.width/box.height —
@@ -209,6 +210,7 @@
                         label="Background color"
                     />
                 </div>
+                <ShadowControls />
             </div>
         </div>
     </div>
