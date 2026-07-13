@@ -337,4 +337,109 @@ describe('Fitfull', () => {
         assert.ok(result.width  <= 200 + 0.01, `width ${result.width} exceeds 200`);
         assert.ok(result.height <= 80 + 0.01, `height ${result.height} exceeds 80`);
     });
+
+    test('regression: shadow shrinks scale vs shadow-less fit', async () => {
+        const ff = Fitfull.create();
+        const tokens = [
+            { text: 'Hello', size: 1, font: INTER_BOLD, weight: 'bold' as const },
+            { text: ' ',     size: 1, font: INTER_BOLD, weight: 'bold' as const },
+            { text: 'World', size: 1, font: INTER_BOLD, weight: 'bold' as const },
+        ];
+        const noShadow = await ff.fit({
+            tokens,
+            width: 240,
+            height: 80,
+            wrap: 'greedy',
+            align: 'left',
+        });
+        const withShadow = await ff.fit({
+            tokens,
+            width: 240,
+            height: 80,
+            wrap: 'greedy',
+            align: 'left',
+            shadow: { offsetX: 0.1, offsetY: 0.1, blur: 0.05 },
+        });
+        // Deviation from the brief: `maxTextHeight`/`minTextHeight` are NOT a
+        // shadow-blind proxy for the chosen scale — verified empirically while
+        // implementing this test. `Fitter.computeBestFit` derives them from
+        // `maxTightHeight`, which is measured on the *shadow-inflated*
+        // per-token metrics (see `inflateForShadow` mutating `allMetrics`
+        // before `maxTightHeight`/`minTightHeight` are computed in
+        // src/fitter/fitter.ts). So `maxTextHeight` bakes in the shadow's
+        // extra vertical padding on top of the shrunk scale, and it can come
+        // out *larger* with shadow than without even though the underlying
+        // glyph scale shrank (measured: no-shadow maxTextHeight=32.03,
+        // with-shadow maxTextHeight=40.58 for this exact case — asserting
+        // `<` on maxTextHeight would fail).
+        //
+        // `textHeight` (and `result.height`, its layout-level twin) is the
+        // tight glyph bbox of the *rendered* text at the chosen scale — the
+        // same shadow-blind quantity documented on `FitResult` — so it tracks
+        // the fitter's chosen scale directly and is the correct observable
+        // proxy for "shadow shrank the scale".
+        assert.ok(
+            withShadow.textHeight < noShadow.textHeight,
+            `expected shadow to shrink the chosen scale (via textHeight); got no-shadow=${noShadow.textHeight}, with-shadow=${withShadow.textHeight}`,
+        );
+    });
+
+    // NOTE: The brief's original "shadow stays inside the box (no bleed)" test
+    // is dropped here (see task-8 brief adjustments). FitResult.width/height are
+    // the tight glyph bbox of the rendered text and never include shadow extent
+    // (see the discovery noted on the boundary-trim regression test above), so
+    // asserting `result.width <= box + tolerance` would pass identically whether
+    // or not shadow inflation is wired up — it doesn't exercise the shadow path
+    // at all. The actual "no bleed" contract (shadow-inflated metrics keep the
+    // *inflated* box within bounds) is already covered elsewhere:
+    //   - src/fitter/effective-bounds.test.ts (Task 3: inflation math itself)
+    //   - Task 7's wiring of inflateForShadow into computeBestFit
+    //   - src/fitter/wrapping.test.ts (Task 7.1: boundary-trim fallback path)
+    //   - src/render-snapshots.test.ts shadow-hard/soft/mixed goldens (Task 5:
+    //     visible shrink relative to no-shadow snapshots)
+    // Duplicating an assertion that can't observe the thing it claims to check
+    // would just add a false sense of coverage.
+
+    test('regression: no shadow → no <filter> and one <path> per non-space token', async () => {
+        const ff = Fitfull.create();
+        const tokens = [
+            { text: 'Alpha', size: 1, font: INTER_REGULAR, weight: 'regular' as const },
+            { text: ' ',     size: 1, font: INTER_REGULAR, weight: 'regular' as const },
+            { text: 'Beta',  size: 1, font: INTER_REGULAR, weight: 'regular' as const },
+        ];
+        const result = await ff.fit({
+            tokens,
+            width: 300,
+            height: 80,
+            wrap: 'greedy',
+            align: 'left',
+        });
+        assert.equal(result.svg.includes('<filter'), false, 'expected no <filter> without shadow');
+        // Only visible-glyph tokens produce <path> nodes. 'Alpha' + 'Beta' = 2 paths.
+        const pathCount = (result.svg.match(/<path /g) ?? []).length;
+        assert.equal(pathCount, 2, `expected 2 path nodes (one per token), got ${pathCount}`);
+    });
+
+    test('regression: per-token shadow overrides top-level shadow', async () => {
+        const ff = Fitfull.create();
+        const tokens = [
+            {
+                text: 'Purple', size: 1, font: INTER_BOLD, weight: 'bold' as const,
+                shadow: { offsetX: 0.05, offsetY: 0.05, color: 'rgba(80,0,140,0.6)' },
+            },
+            { text: ' ', size: 1, font: INTER_BOLD, weight: 'bold' as const },
+            { text: 'Black', size: 1, font: INTER_BOLD, weight: 'bold' as const },
+        ];
+        const result = await ff.fit({
+            tokens,
+            width: 400,
+            height: 80,
+            wrap: 'greedy',
+            align: 'left',
+            shadow: { offsetX: 0.05, offsetY: 0.05, color: 'rgba(0,0,0,0.5)' },
+        });
+        // Both shadow colors should appear in the output SVG's fill attributes.
+        assert.ok(result.svg.includes('rgba(80,0,140,0.6)'), 'expected per-token shadow color');
+        assert.ok(result.svg.includes('rgba(0,0,0,0.5)'),    'expected top-level shadow color');
+    });
 });
