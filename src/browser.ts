@@ -4,7 +4,7 @@ import type { ParseHtml } from './html-parser.js';
 import type { FontWeight } from './types.js';
 
 export type { FitResult, FitfullInput } from './fitfull.js';
-export type { Token, FontWeight, Alignment, PositionedLine, PositionedLayout } from './types.js';
+export type { Token, FontWeight, Alignment, PositionedLine, PositionedLayout, Shadow } from './types.js';
 export type { BrowserFont } from './fonts/browser-font-manager.js';
 
 /** Browser fit options — fonts are supplied as bytes. */

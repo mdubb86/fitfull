@@ -1,6 +1,8 @@
 // Module-singleton: import { box } from '$lib/state/box.svelte' anywhere.
 // Mutations propagate reactively to all consumers via Svelte 5 runes.
 
+import type { Shadow } from 'fitfull/browser';
+
 type WrapMode = 'balanced' | 'greedy';
 type Align = 'left' | 'center' | 'right';
 
@@ -20,6 +22,8 @@ class BoxState {
     textColor = $state('#000000');
     /** Canvas background color baked into the SVG/PNG export. null = transparent. */
     bgColor = $state<string | null>(null);
+    /** Document-level drop shadow. null = no shadow. */
+    shadow = $state<Shadow | null>(null);
 
     get aspect() {
         return this.width / this.height;
@@ -28,6 +32,17 @@ class BoxState {
     setDims(w: number, h: number) {
         this.width = Math.max(16, Math.min(7680, Math.round(w)));
         this.height = Math.max(16, Math.min(7680, Math.round(h)));
+    }
+
+    setShadow(next: Shadow | null) {
+        this.shadow = next;
+    }
+
+    /** Convenience: patch a subset of shadow fields. Materializes from a
+     *  base preset if shadow is currently null. */
+    patchShadow(patch: Partial<Shadow>) {
+        const base: Shadow = this.shadow ?? { offsetX: 0.05, offsetY: 0.05, blur: 0, color: 'rgba(0,0,0,0.5)' };
+        this.shadow = { ...base, ...patch };
     }
 }
 

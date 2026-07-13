@@ -47,6 +47,9 @@ class FitState {
             // Only pass `background` when explicitly set — otherwise fitfull
             // renders no bg rect and the SVG/PNG export stays transparent.
             if (box.bgColor) fitOpts.background = box.bgColor;
+            // Only pass `shadow` when explicitly set — omitting lets fitfull
+            // default to no shadow rather than forwarding a null sentinel.
+            if (box.shadow) fitOpts.shadow = box.shadow;
             const res = await this.ff.fit(fitOpts);
             this.result = res;
             this.fitBoxW = w;
