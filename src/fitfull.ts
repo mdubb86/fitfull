@@ -112,6 +112,7 @@ export class FitfullCore {
             align: options.align ?? 'left',
             wrap: options.wrap ?? 'balanced',
             deadline,
+            shadow: options.shadow,
         };
 
         // Run the fitter

@@ -1,4 +1,4 @@
-import type { Token, TokenMetrics, Alignment, PositionedLayout } from '../types.js';
+import type { Token, TokenMetrics, Alignment, PositionedLayout, Shadow } from '../types.js';
 import type { FontProvider } from '../fonts/index.js';
 
 /** Tolerance for constraint checks (accounts for floating point drift) */
@@ -18,6 +18,8 @@ export type FitterConfig = {
     wrap?: 'balanced' | 'greedy';
     /** Absolute performance.now() timestamp at which to abort. Use Infinity to disable. */
     deadline?: number;
+    /** Top-level shadow default. Per-token `token.shadow` overrides. */
+    shadow?: Shadow;
 };
 
 /** Shared inputs for strategy functions */

@@ -1,5 +1,5 @@
-import type { Token, TokenMetrics, Alignment } from '../types.js';
-import { measureLine, measureAllTokenMetrics, getAdvanceWidth, computeLayout } from '../measure/index.js';
+import type { Token, TokenMetrics, Alignment, Shadow } from '../types.js';
+import { measureLine, measureAllTokenMetrics, getAdvanceWidth, computeLayout, inflateForShadow } from '../measure/index.js';
 import { getFontMetrics } from '../fonts/index.js';
 import type { FontProvider } from '../fonts/index.js';
 import type { FitterConfig, BestFit, SearchContext } from './types.js';
@@ -21,6 +21,7 @@ export default class Fitter {
     private readonly align: Alignment;
     private readonly wrap: 'balanced' | 'greedy';
     private readonly deadline: number;
+    private readonly shadow?: Shadow;
 
     constructor(
         tokens: Token[],
@@ -44,6 +45,7 @@ export default class Fitter {
         this.align = config.align;
         this.wrap = config.wrap ?? 'balanced';
         this.deadline = config.deadline ?? Infinity;
+        this.shadow = config.shadow;
 
         // Estimate optimal line count from text ribbon / box aspect ratio.
         const largestTokenSize = Math.max(...tokens.map(t => t.size));
@@ -72,6 +74,17 @@ export default class Fitter {
     computeBestFit(): BestFit {
         // 1. Measure all tokens, precompute kerning, and build cumulative widths
         const allMetrics = measureAllTokenMetrics(this.tokens, this.fonts);
+
+        // Inflate per-token metrics for any effective shadow. Per-token
+        // `token.shadow` beats the top-level default.
+        for (let i = 0; i < this.tokens.length; i++) {
+            const tok = this.tokens[i];
+            const eff = tok.shadow ?? this.shadow;
+            if (eff) {
+                allMetrics[i] = inflateForShadow(allMetrics[i], eff, tok.size);
+            }
+        }
+
         const tokenMetricsMap = new Map<Token, TokenMetrics>();
         const cumulativeWidths: number[] = new Array(this.tokens.length);
         let widthSum = 0;
