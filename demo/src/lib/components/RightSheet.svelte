@@ -76,8 +76,8 @@
     // Shadow section — presets + helpers. All handlers call fit.scheduleFit(0)
     // explicitly to match the sibling controls' pattern (setWrap, setAlign,
     // onSpacingChange) rather than relying on the auto-refit $effect.
-    const HARD: Shadow = { offsetX: 0.05, offsetY: 0.05, blur: 0,     color: 'rgba(0,0,0,0.5)' };
-    const SOFT: Shadow = { offsetX: 0.03, offsetY: 0.04, blur: 0.025, color: 'rgba(0,0,0,0.45)' };
+    // Single default preset — the sliders do the tuning from there.
+    const DEFAULT_SHADOW: Shadow = { offsetX: 0.05, offsetY: 0.05, blur: 0, color: 'rgba(0,0,0,0.5)' };
 
     function shadowEq(a: Shadow, b: Shadow): boolean {
         return a.offsetX === b.offsetX
@@ -85,12 +85,10 @@
             && (a.blur  ?? 0)  === (b.blur  ?? 0)
             && (a.color ?? '') === (b.color ?? '');
     }
-    function isHard(s: Shadow | null): boolean { return s !== null && shadowEq(s, HARD); }
-    function isSoft(s: Shadow | null): boolean { return s !== null && shadowEq(s, SOFT); }
-    function shadowLabel(s: Shadow | null): 'off' | 'hard' | 'soft' | 'custom' {
+    function isDefaultShadow(s: Shadow | null): boolean { return s !== null && shadowEq(s, DEFAULT_SHADOW); }
+    function shadowLabel(s: Shadow | null): 'off' | 'on' | 'custom' {
         if (s === null) return 'off';
-        if (isHard(s)) return 'hard';
-        if (isSoft(s)) return 'soft';
+        if (isDefaultShadow(s)) return 'on';
         return 'custom';
     }
 
@@ -255,9 +253,8 @@
             </div>
             <div class="section-body">
                 <div class="minigroup">
-                    <button class:active={box.shadow === null} onclick={() => setShadowPreset(null)}>Off</button>
-                    <button class:active={isHard(box.shadow)}  onclick={() => setShadowPreset(HARD)}>Hard</button>
-                    <button class:active={isSoft(box.shadow)}  onclick={() => setShadowPreset(SOFT)}>Soft</button>
+                    <button class:active={box.shadow === null}          onclick={() => setShadowPreset(null)}>Off</button>
+                    <button class:active={isDefaultShadow(box.shadow)}  onclick={() => setShadowPreset(DEFAULT_SHADOW)}>On</button>
                 </div>
                 {#if box.shadow}
                     <div class="field">
