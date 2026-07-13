@@ -51,12 +51,12 @@ function assertValidShadow(shadow: Shadow, where: string): void {
  * the SVG viewBox can be expanded to include the shadow. Without this the
  * viewBox is tight to the raw glyph bbox and viewers clip the shadow.
  *
- * Uses 2σ (not 3σ) for the blur tail: fit-time `inflateForShadow` uses 3σ
- * for safety since scale selection is correctness-critical, but the visible
- * gaussian falls off around 2σ (~5% intensity) — 3σ at render time leaves
- * a visible band of dead space around the shadow.
+ * Uses 1σ for the blur tail: fit-time `inflateForShadow` uses 3σ for
+ * safety since scale selection is correctness-critical, but the perceived
+ * edge of a gaussian sits closer to 1σ once the shadow's alpha is
+ * factored in — anything beyond that visually reads as dead space.
  */
-const BLUR_VISIBLE_SIGMA = 2;
+const BLUR_VISIBLE_SIGMA = 1;
 
 function shadowInflation(
     lines: readonly MeasuredLine[],
