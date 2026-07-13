@@ -1,4 +1,5 @@
 import type { MeasuredLine, PositionedLayout } from '../types.js';
+import type { Shadow } from '../types.js';
 
 const CSS_COLOR_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|[a-zA-Z]+)$/;
 
@@ -10,6 +11,41 @@ function assertValidColor(value: string, field: string): void {
     }
 }
 
+const DEFAULT_SHADOW_COLOR = 'rgba(0,0,0,0.5)';
+
+/**
+ * Compute output-space shadow deltas for a token given its rendered size.
+ * offsetX/Y/blur are em-relative; multiplying by the (post-scale) token
+ * size converts to output pixels.
+ */
+function shadowDeltas(shadow: Shadow, tokenSize: number): {
+    dx: number; dy: number; blurPx: number; color: string;
+} {
+    return {
+        dx: shadow.offsetX * tokenSize,
+        dy: shadow.offsetY * tokenSize,
+        blurPx: (shadow.blur ?? 0) * tokenSize,
+        color: shadow.color ?? DEFAULT_SHADOW_COLOR,
+    };
+}
+
+/**
+ * Return a canonical string key for a blur radius so filter defs dedup
+ * cleanly. Keys quantize to 0.01 px — well below perceptible difference.
+ */
+function blurKey(blurPx: number): string {
+    return blurPx.toFixed(2);
+}
+
+function filterId(key: string): string {
+    // ID-safe: strip the dot from the key.
+    return `fitfull-shadow-blur-${key.replace('.', '_')}`;
+}
+
+function assertValidShadow(shadow: Shadow, where: string): void {
+    if (shadow.color !== undefined) assertValidColor(shadow.color, `${where} shadow color`);
+}
+
 /**
  * Render a measured line to an SVG string
  */
@@ -17,6 +53,8 @@ export function lineToSVG(line: MeasuredLine, options: {
     padding?: number;
     background?: string;
     color?: string;
+    /** Top-level shadow default; per-token `token.shadow` overrides. */
+    shadow?: Shadow;
     showBaseline?: boolean;
     showBorder?: boolean;
     useTightBounds?: boolean;
@@ -40,6 +78,22 @@ export function lineToSVG(line: MeasuredLine, options: {
         }
     }
 
+    if (options.shadow) assertValidShadow(options.shadow, 'top-level');
+    for (const mt of line.tokens) {
+        if (mt.token.shadow !== undefined) {
+            assertValidShadow(mt.token.shadow, `token (text: "${mt.token.text}")`);
+        }
+    }
+
+    // Collect unique blur radii used by shadows in this line for filter dedup.
+    const blurKeys = new Set<string>();
+    for (const mt of line.tokens) {
+        const eff = mt.token.shadow ?? options.shadow;
+        if (!eff) continue;
+        const { blurPx } = shadowDeltas(eff, mt.token.size);
+        if (blurPx > 0) blurKeys.add(blurKey(blurPx));
+    }
+
     const bbox = line.tightBbox;
 
     // SVG dimensions - use exact values for tight fit
@@ -56,6 +110,16 @@ export function lineToSVG(line: MeasuredLine, options: {
     }
     svg += '>\n';
 
+    if (blurKeys.size > 0) {
+        svg += '  <defs>\n';
+        for (const key of blurKeys) {
+            svg += `    <filter id="${filterId(key)}" x="-20%" y="-20%" width="140%" height="140%">\n`;
+            svg += `      <feGaussianBlur stdDeviation="${key}"/>\n`;
+            svg += '    </filter>\n';
+        }
+        svg += '  </defs>\n';
+    }
+
     // Debug: show border (exact bounds)
     if (showBorder) {
         svg += `  <rect x="0" y="0" width="${width.toFixed(2)}" height="${height.toFixed(2)}" fill="none" stroke="blue" stroke-width="0.5"/>\n`;
@@ -71,7 +135,17 @@ export function lineToSVG(line: MeasuredLine, options: {
     for (const measured of line.tokens) {
         const pathData = measured.path.toPathData(2);
         const fill = measured.token.color ?? color;
+        const eff = measured.token.shadow ?? options.shadow;
         svg += `  <g transform="translate(${offsetX.toFixed(2)}, ${offsetY.toFixed(2)})">\n`;
+        if (eff) {
+            const { dx, dy, blurPx, color: shadowColor } = shadowDeltas(eff, measured.token.size);
+            const shadowGroupAttrs = blurPx > 0
+                ? ` filter="url(#${filterId(blurKey(blurPx))})"`
+                : '';
+            svg += `    <g transform="translate(${dx.toFixed(2)}, ${dy.toFixed(2)})"${shadowGroupAttrs}>\n`;
+            svg += `      <path d="${pathData}" fill="${shadowColor}"/>\n`;
+            svg += '    </g>\n';
+        }
         svg += `    <path d="${pathData}" fill="${fill}"/>\n`;
         svg += `  </g>\n`;
     }
@@ -89,6 +163,8 @@ export function layoutToSVG(
         padding?: number;
         background?: string;
         color?: string;
+        /** Top-level shadow default; per-token `token.shadow` overrides. */
+        shadow?: Shadow;
         annotate?: boolean;
     } = {}
 ): string {
@@ -106,6 +182,25 @@ export function layoutToSVG(
         }
     }
 
+    if (options.shadow) assertValidShadow(options.shadow, 'top-level');
+    for (const posLine of layout.lines) {
+        for (const mt of posLine.measured.tokens) {
+            if (mt.token.shadow !== undefined) {
+                assertValidShadow(mt.token.shadow, `token (text: "${mt.token.text}")`);
+            }
+        }
+    }
+
+    const blurKeys = new Set<string>();
+    for (const posLine of layout.lines) {
+        for (const mt of posLine.measured.tokens) {
+            const eff = mt.token.shadow ?? options.shadow;
+            if (!eff) continue;
+            const { blurPx } = shadowDeltas(eff, mt.token.size);
+            if (blurPx > 0) blurKeys.add(blurKey(blurPx));
+        }
+    }
+
     if (layout.lines.length === 0) {
         return '<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" viewBox="0 0 0 0"></svg>';
     }
@@ -119,6 +214,16 @@ export function layoutToSVG(
     }
     svg += '>\n';
 
+    if (blurKeys.size > 0) {
+        svg += '  <defs>\n';
+        for (const key of blurKeys) {
+            svg += `    <filter id="${filterId(key)}" x="-20%" y="-20%" width="140%" height="140%">\n`;
+            svg += `      <feGaussianBlur stdDeviation="${key}"/>\n`;
+            svg += '    </filter>\n';
+        }
+        svg += '  </defs>\n';
+    }
+
     // First pass: render all text paths
     for (const posLine of layout.lines) {
         const lineOffsetX = posLine.x + padding;
@@ -128,7 +233,17 @@ export function layoutToSVG(
             if (measured.path.commands.length === 0) continue;
             const pathData = measured.path.toPathData(2);
             const fill = measured.token.color ?? color;
+            const eff = measured.token.shadow ?? options.shadow;
             svg += `  <g transform="translate(${lineOffsetX.toFixed(2)}, ${lineOffsetY.toFixed(2)})">\n`;
+            if (eff) {
+                const { dx, dy, blurPx, color: shadowColor } = shadowDeltas(eff, measured.token.size);
+                const shadowGroupAttrs = blurPx > 0
+                    ? ` filter="url(#${filterId(blurKey(blurPx))})"`
+                    : '';
+                svg += `    <g transform="translate(${dx.toFixed(2)}, ${dy.toFixed(2)})"${shadowGroupAttrs}>\n`;
+                svg += `      <path d="${pathData}" fill="${shadowColor}"/>\n`;
+                svg += '    </g>\n';
+            }
             svg += `    <path d="${pathData}" fill="${fill}"/>\n`;
             svg += `  </g>\n`;
         }
