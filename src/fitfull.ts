@@ -52,6 +52,13 @@ export interface FitResult {
     textWidth: number;
     /** Tight bounding-box height of the rendered text (in box-coordinate pixels). */
     textHeight: number;
+    /** SVG root's width attribute — the dimensions of the emitted SVG/PNG,
+     *  including any shadow inflation added by the renderer. Use this when
+     *  sizing a downstream frame or canvas to match the output file, not
+     *  `width` (which is the shadow-blind text bbox). */
+    svgWidth: number;
+    /** SVG root's height attribute. See `svgWidth`. */
+    svgHeight: number;
 }
 
 /**
@@ -82,6 +89,8 @@ export class FitfullCore {
                 arrangements: 0,
                 textWidth: 0,
                 textHeight: 0,
+                svgWidth: 0,
+                svgHeight: 0,
             };
         }
 
@@ -143,6 +152,12 @@ export class FitfullCore {
             textHeight = maxY - minY;
         }
 
+        // Extract the SVG root's own width/height so callers can size a
+        // downstream frame to the actual output — the renderer may extend
+        // dimensions beyond layout.width/height to include shadow envelope.
+        const svgWidth  = parseFloat(svg.match(/<svg\b[^>]*\swidth="([\d.]+)"/)?.[1]  ?? '0');
+        const svgHeight = parseFloat(svg.match(/<svg\b[^>]*\sheight="([\d.]+)"/)?.[1] ?? '0');
+
         return {
             width: result.layout.width,
             height: result.layout.height,
@@ -153,6 +168,8 @@ export class FitfullCore {
             lines: result.layout.lines.map(line => line.text),
             textWidth,
             textHeight,
+            svgWidth,
+            svgHeight,
         };
     }
 

@@ -442,4 +442,43 @@ describe('Fitfull', () => {
         assert.ok(result.svg.includes('rgba(80,0,140,0.6)'), 'expected per-token shadow color');
         assert.ok(result.svg.includes('rgba(0,0,0,0.5)'),    'expected top-level shadow color');
     });
+
+    test('regression: svgWidth/svgHeight match the emitted SVG root and exceed layout.width when shadow inflates viewport', async () => {
+        const ff = Fitfull.create();
+        const tokens = [
+            { text: 'Bleed', size: 1, font: INTER_BOLD, weight: 'bold' as const },
+        ];
+        const result = await ff.fit({
+            tokens,
+            width: 400,
+            height: 100,
+            wrap: 'greedy',
+            align: 'left',
+            shadow: { offsetX: 0.05, offsetY: 0.05, blur: 0.1, color: 'rgba(0,0,0,0.5)' },
+        });
+        // svgWidth/svgHeight must equal the SVG root's own width/height
+        // attributes — the source of truth for "how big is the PNG on disk".
+        const svgW = parseFloat(result.svg.match(/<svg\b[^>]*\swidth="([\d.]+)"/)![1]);
+        const svgH = parseFloat(result.svg.match(/<svg\b[^>]*\sheight="([\d.]+)"/)![1]);
+        assert.strictEqual(result.svgWidth, svgW);
+        assert.strictEqual(result.svgHeight, svgH);
+        // And they should be strictly larger than the raw text bbox when
+        // any shadow envelope is present.
+        assert.ok(result.svgWidth  > result.width,  `svgWidth (${result.svgWidth}) should exceed layout width (${result.width}) with shadow`);
+        assert.ok(result.svgHeight > result.height, `svgHeight (${result.svgHeight}) should exceed layout height (${result.height}) with shadow`);
+    });
+
+    test('regression: svgWidth/svgHeight equal layout width/height when no shadow is set (within .toFixed(2) rounding)', async () => {
+        const ff = Fitfull.create();
+        const result = await ff.fit({
+            tokens: [{ text: 'Plain', size: 1, font: INTER_BOLD, weight: 'bold' as const }],
+            width: 400,
+            height: 100,
+            wrap: 'greedy',
+            align: 'left',
+        });
+        // SVG root width/height are emitted with .toFixed(2), so allow 0.01 tolerance.
+        assert.ok(Math.abs(result.svgWidth  - result.width)  < 0.01, `svgWidth (${result.svgWidth}) vs width (${result.width})`);
+        assert.ok(Math.abs(result.svgHeight - result.height) < 0.01, `svgHeight (${result.svgHeight}) vs height (${result.height})`);
+    });
 });

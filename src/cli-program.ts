@@ -49,8 +49,12 @@ function writeOutput(svg: string, outputPath: string) {
 
 function outputResult(result: FitResult, outputPath: string, elapsedMs: number) {
     console.log(JSON.stringify({
-        width: Math.ceil(result.width),
-        height: Math.ceil(result.height),
+        // `width`/`height` are the emitted file's dimensions (svgWidth/svgHeight
+        // include any shadow envelope) — matches what a consumer reading the
+        // PNG/SVG on disk will see. `textWidth`/`textHeight` are the raw
+        // glyph bbox and stay reported for callers that need the tight text.
+        width: Math.ceil(result.svgWidth),
+        height: Math.ceil(result.svgHeight),
         textWidth: result.textWidth,
         textHeight: result.textHeight,
         minTextHeight: result.minTextHeight,
@@ -290,7 +294,7 @@ program
                 process.exit(1);
             }
 
-            status(`Found fit: ${result.width.toFixed(0)}x${result.height.toFixed(0)}, ${result.lines.length} line(s)`);
+            status(`Found fit: ${result.svgWidth.toFixed(0)}x${result.svgHeight.toFixed(0)}, ${result.lines.length} line(s)`);
 
             writeOutput(result.svg, opts.output);
             outputResult(result, opts.output, elapsed);
