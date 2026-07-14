@@ -1,5 +1,6 @@
 import type { MeasuredLine, PositionedLayout } from '../types.js';
 import type { Shadow } from '../types.js';
+import { shadowVisibleSigma } from './effective-bounds.js';
 
 const CSS_COLOR_RE = /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|[a-zA-Z]+)$/;
 
@@ -51,16 +52,12 @@ function assertValidShadow(shadow: Shadow, where: string): void {
  * the SVG viewBox can be expanded to include the shadow. Without this the
  * viewBox is tight to the raw glyph bbox and viewers clip the shadow.
  *
- * The shadow's visible gaussian envelope is centered at (glyph_edge + offset)
- * and extends ~1σ from that peak in each direction. So on the "same-sign as
- * offset" side, the envelope reaches offset + 1σ past the glyph. On the
- * "opposite-sign" side, only the tail past bounds contributes — which is
- * max(0, 1σ - |offset|). Older code added 1σ on BOTH sides regardless of
- * offset, over-reserving padding on the opposite side when offset was
- * nonzero.
+ * The per-shadow σ multiplier is derived from the shadow's alpha channel via
+ * `shadowVisibleSigma`, so an opaque glow gets ~3σ padding (visible far into
+ * the tail) while a semi-transparent shadow gets ~2σ (fades faster). The
+ * same helper is used at fit time in `inflateForShadow`, so the reserved
+ * space equals the visible envelope — no dead padding, no clip artifact.
  */
-const BLUR_VISIBLE_SIGMA = 0.5;
-
 function shadowInflation(
     lines: readonly MeasuredLine[],
     topLevelShadow: Shadow | undefined,
@@ -71,7 +68,7 @@ function shadowInflation(
             const eff = mt.token.shadow ?? topLevelShadow;
             if (!eff) continue;
             const { dx, dy, blurPx } = shadowDeltas(eff, mt.token.size);
-            const tail = BLUR_VISIBLE_SIGMA * blurPx;
+            const tail = shadowVisibleSigma(eff.color) * blurPx;
             // Peak-centered gaussian envelope: visible edge = offset ± tail.
             left   = Math.max(left,   Math.max(0, tail - dx));
             right  = Math.max(right,  Math.max(0, tail + dx));
