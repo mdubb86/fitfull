@@ -53,32 +53,26 @@ test('negative offsetY grows tightTop (moves upward)', () => {
     assert.equal(out.tightBottom, 2);
 });
 
-test('blur inflates symmetrically by 2 * blur * tokenSize on all sides', () => {
+test('blur alone does not inflate — blur is a soft presentation effect not counted at fit time', () => {
     const shadow: Shadow = { offsetX: 0, offsetY: 0, blur: 0.02 };
     const out = inflateForShadow(base, shadow, 1);
-    const extra = 2 * 0.02; // 0.04
-    assert.equal(out.advanceWidth, 10 + 2 * extra);
-    assert.equal(out.leftBearing, 1 - extra);
-    assert.equal(out.tightRight, 9 + extra);
-    assert.equal(out.tightTop, -8 - extra);
-    assert.equal(out.tightBottom, 2 + extra);
+    // Everything passes through unchanged when only blur is set.
+    assert.equal(out.advanceWidth, base.advanceWidth);
+    assert.equal(out.leftBearing, base.leftBearing);
+    assert.equal(out.tightRight, base.tightRight);
+    assert.equal(out.tightTop, base.tightTop);
+    assert.equal(out.tightBottom, base.tightBottom);
 });
 
-test('offset + blur combine additively', () => {
+test('blur is ignored even when combined with offset', () => {
     const shadow: Shadow = { offsetX: 0.05, offsetY: 0.03, blur: 0.02 };
     const out = inflateForShadow(base, shadow, 1);
-    const blurExtra = 2 * 0.02;
-    // Group additions to match the impl's evaluation order — the sums are
-    // mathematically identical, but IEEE-754 rounding differs by 1 ULP if
-    // the parenthesization changes. (Long-standing follow-up: switch all
-    // these to epsilon comparisons and restore natural impl grouping.)
-    const leftExtra = 0 + blurExtra;
-    const rightExtra = 0.05 + blurExtra;
-    assert.equal(out.advanceWidth, 10 + (leftExtra + rightExtra));
-    assert.equal(out.tightRight, 9 + 0.05 + blurExtra);
-    assert.equal(out.leftBearing, 1 - blurExtra);
-    assert.equal(out.tightTop, -8 - blurExtra);
-    assert.equal(out.tightBottom, 2 + 0.03 + blurExtra);
+    // Only offset counts. Blur value is ignored at fit time.
+    assert.equal(out.advanceWidth, 10 + 0.05);
+    assert.equal(out.tightRight, 9 + 0.05);
+    assert.equal(out.leftBearing, 1);
+    assert.equal(out.tightTop, -8);
+    assert.equal(out.tightBottom, 2 + 0.03);
 });
 
 test('tokenSize scales the em-relative offset', () => {

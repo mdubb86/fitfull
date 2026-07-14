@@ -51,12 +51,15 @@ function assertValidShadow(shadow: Shadow, where: string): void {
  * the SVG viewBox can be expanded to include the shadow. Without this the
  * viewBox is tight to the raw glyph bbox and viewers clip the shadow.
  *
- * Uses 1σ for the blur tail: fit-time `inflateForShadow` uses 3σ for
- * safety since scale selection is correctness-critical, but the perceived
- * edge of a gaussian sits closer to 1σ once the shadow's alpha is
- * factored in — anything beyond that visually reads as dead space.
+ * The shadow's visible gaussian envelope is centered at (glyph_edge + offset)
+ * and extends ~1σ from that peak in each direction. So on the "same-sign as
+ * offset" side, the envelope reaches offset + 1σ past the glyph. On the
+ * "opposite-sign" side, only the tail past bounds contributes — which is
+ * max(0, 1σ - |offset|). Older code added 1σ on BOTH sides regardless of
+ * offset, over-reserving padding on the opposite side when offset was
+ * nonzero.
  */
-const BLUR_VISIBLE_SIGMA = 1;
+const BLUR_VISIBLE_SIGMA = 0.5;
 
 function shadowInflation(
     lines: readonly MeasuredLine[],
@@ -68,11 +71,12 @@ function shadowInflation(
             const eff = mt.token.shadow ?? topLevelShadow;
             if (!eff) continue;
             const { dx, dy, blurPx } = shadowDeltas(eff, mt.token.size);
-            const extra = BLUR_VISIBLE_SIGMA * blurPx;
-            left   = Math.max(left,   Math.max(0, -dx) + extra);
-            right  = Math.max(right,  Math.max(0,  dx) + extra);
-            top    = Math.max(top,    Math.max(0, -dy) + extra);
-            bottom = Math.max(bottom, Math.max(0,  dy) + extra);
+            const tail = BLUR_VISIBLE_SIGMA * blurPx;
+            // Peak-centered gaussian envelope: visible edge = offset ± tail.
+            left   = Math.max(left,   Math.max(0, tail - dx));
+            right  = Math.max(right,  Math.max(0, tail + dx));
+            top    = Math.max(top,    Math.max(0, tail - dy));
+            bottom = Math.max(bottom, Math.max(0, tail + dy));
         }
     }
     return { left, right, top, bottom };
