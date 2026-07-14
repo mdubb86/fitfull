@@ -6,12 +6,21 @@ import type { Font, FontCollection } from 'fontkit';
 import { Resvg } from '@resvg/resvg-wasm';
 import type { FitResult } from './fitfull.js';
 import { fitfull, type FitOptions } from './index.js';
-import type { Token, FontWeight } from './types.js';
+import type { Token, FontWeight, Shadow } from './types.js';
 import { InputTokenArraySchema, inputTokensToTokens, parseFontString, mapWeight } from './schema.js';
 import { normalizeFamily } from './fonts/normalize.js';
 
 function status(msg: string) {
     console.error(`[fitfull] ${msg}`);
+}
+
+/** Parse an em-relative shadow number. Accepts bare numbers ("0.05") or with
+ *  optional em suffix ("0.05em") — feels CSS-native but doesn't require it. */
+function parseShadowEm(raw: string): number {
+    const cleaned = raw.trim().replace(/em$/i, '');
+    const n = parseFloat(cleaned);
+    if (!isFinite(n)) throw new Error(`Invalid shadow number: "${raw}" (expected a plain number or a value like "0.05em")`);
+    return n;
 }
 
 function parseSize(sizeStr: string): { width: number; height: number } {
@@ -127,6 +136,10 @@ program
     .option('--timeout <ms>', 'Maximum fit duration in milliseconds (default: 10000)', parseFloat, 10000)
     .option('-c, --color <color>', 'Text color', '#000000')
     .option('-b, --background <color>', 'Background color (transparent if not set)')
+    .option('--shadow-x <em>', 'Shadow horizontal offset (em, e.g. 0.05 or 0.05em). Presence of any --shadow-* enables the shadow.', parseShadowEm)
+    .option('--shadow-y <em>', 'Shadow vertical offset (em)', parseShadowEm)
+    .option('--shadow-blur <em>', 'Shadow blur radius (em)', parseShadowEm)
+    .option('--shadow-color <color>', 'Shadow color (any CSS color)')
     .option('--annotate', 'Show layout annotations (line bounds, token bounds, baselines)')
     .action(async (opts) => {
         try {
@@ -249,11 +262,25 @@ program
             // Use the singleton fitfull instance
             const ff = fitfull.get();
 
+            // Any --shadow-* flag enables the shadow; missing fields fall back
+            // to defaults that keep a bare `--shadow-color red` visible.
+            const anyShadowFlag = opts.shadowX !== undefined
+                || opts.shadowY !== undefined
+                || opts.shadowBlur !== undefined
+                || opts.shadowColor !== undefined;
+            const shadow: Shadow | undefined = anyShadowFlag ? {
+                offsetX: opts.shadowX ?? 0.05,
+                offsetY: opts.shadowY ?? 0.05,
+                blur:    opts.shadowBlur ?? 0,
+                color:   opts.shadowColor ?? 'rgba(0,0,0,0.5)',
+            } : undefined;
+
             const startTime = performance.now();
             const result = await ff.fit({
                 ...fitOptions,
                 color: opts.color,
                 background: opts.background,
+                shadow,
                 annotate: opts.annotate,
             });
             const elapsed = performance.now() - startTime;

@@ -130,6 +130,63 @@ describe('CLI happy paths', () => {
         unlinkSync(tokensPath);
         unlinkSync(out);
     });
+
+    test('CLI: --shadow-* flags on text mode emit shadow markup', () => {
+        const out = tmp('flag-shadow.svg');
+        const result = runCli([
+            '--text', 'Hi',
+            '--font', join(ROOT, 'fonts', 'Inter-Bold.ttf'),
+            '--size', '400x100',
+            '--shadow-x', '0.06em',
+            '--shadow-y', '-0.06',
+            '--shadow-color', '#ff5500',
+            '-o', out,
+        ]);
+
+        assert.strictEqual(result.status, 0, `expected exit 0, got ${result.status}\n${result.stderr}`);
+        assert.ok(existsSync(out));
+        const svg = readFileSync(out, 'utf-8');
+        assert.ok(svg.startsWith('<svg'));
+        assert.ok(svg.includes('#ff5500'), 'expected --shadow-color in SVG output');
+
+        unlinkSync(out);
+    });
+
+    test('CLI: bare --shadow-color activates shadow with default offsets', () => {
+        const out = tmp('flag-shadow-defaults.svg');
+        const result = runCli([
+            '--text', 'Hi',
+            '--font', join(ROOT, 'fonts', 'Inter-Bold.ttf'),
+            '--size', '400x100',
+            '--shadow-color', 'blue',
+            '-o', out,
+        ]);
+
+        assert.strictEqual(result.status, 0, `expected exit 0, got ${result.status}\n${result.stderr}`);
+        const svg = readFileSync(out, 'utf-8');
+        assert.ok(svg.includes('blue'), 'expected shadow color in SVG output even without --shadow-x/-y');
+
+        unlinkSync(out);
+    });
+
+    test('CLI: no --shadow-* flags → no shadow markup', () => {
+        const out = tmp('flag-no-shadow.svg');
+        const result = runCli([
+            '--text', 'Hi',
+            '--font', join(ROOT, 'fonts', 'Inter-Bold.ttf'),
+            '--size', '400x100',
+            '-o', out,
+        ]);
+
+        assert.strictEqual(result.status, 0, `expected exit 0, got ${result.status}\n${result.stderr}`);
+        const svg = readFileSync(out, 'utf-8');
+        // Default text color is black; assert exactly one <path> per token
+        // (no shadow-color paths doubling them).
+        const pathCount = (svg.match(/<path /g) ?? []).length;
+        assert.strictEqual(pathCount, 1, `expected 1 path (no shadow), got ${pathCount}`);
+
+        unlinkSync(out);
+    });
 });
 
 describe('CLI stdin and output dispatch', () => {
