@@ -75,6 +75,20 @@ export default class Fitter {
         // 1. Measure all tokens, precompute kerning, and build cumulative widths
         const allMetrics = measureAllTokenMetrics(this.tokens, this.fonts);
 
+        // Raw (pre-inflation) tight heights — used as the reference for
+        // textHeight and the returned minTextHeight/maxTextHeight so those
+        // sizes refer to the visible glyph body, NOT the shadow envelope.
+        // Shadow extends beyond the requested textHeight.
+        let rawMaxTightHeight = 0;
+        let rawMinTightHeight = Infinity;
+        for (let i = 0; i < this.tokens.length; i++) {
+            const m = allMetrics[i];
+            const th = m.tightBottom - m.tightTop;
+            if (th > rawMaxTightHeight) rawMaxTightHeight = th;
+            if (th > 0 && th < rawMinTightHeight) rawMinTightHeight = th;
+        }
+        if (rawMinTightHeight === Infinity) rawMinTightHeight = rawMaxTightHeight;
+
         // Inflate per-token metrics for any effective shadow. Per-token
         // `token.shadow` beats the top-level default.
         for (let i = 0; i < this.tokens.length; i++) {
@@ -99,7 +113,9 @@ export default class Fitter {
         const largestTokenSize = Math.max(...this.tokens.map(t => t.size));
         const smallestTokenSize = Math.min(...this.tokens.filter(t => t.text.trim()).map(t => t.size));
 
-        // Find tallest and shortest token's tight height at scale=1
+        // Find tallest and shortest token's tight height at scale=1 (inflated —
+        // used for the auto-scale search which must respect the shadow envelope
+        // inside the box).
         let maxTightHeight = 0;
         let minTightHeight = Infinity;
         for (let i = 0; i < this.tokens.length; i++) {
@@ -122,8 +138,12 @@ export default class Fitter {
         let maxScale: number;
 
         if (this.textHeight) {
-            // Fixed text height: set exact scale for tallest token to reach target height
-            const fixedScale = this.textHeight / maxTightHeight;
+            // Fixed text height: set scale so the tallest RAW glyph reaches the
+            // requested height. Shadow extends beyond — the output PNG/SVG
+            // dimensions grow to accommodate it. This lets callers use
+            // textHeight as a stable "font size" that doesn't shift when the
+            // shadow gets larger.
+            const fixedScale = this.textHeight / rawMaxTightHeight;
             minScale = fixedScale;
             maxScale = fixedScale;
         } else {
@@ -195,8 +215,10 @@ export default class Fitter {
         return {
             layout,
             arrangements: result.arrangements,
-            minTextHeight: minTightHeight * result.scale,
-            maxTextHeight: maxTightHeight * result.scale,
+            // Report raw glyph heights so consumers see the actual visible
+            // text size, not the shadow-inflated envelope.
+            minTextHeight: rawMinTightHeight * result.scale,
+            maxTextHeight: rawMaxTightHeight * result.scale,
         };
     }
 }

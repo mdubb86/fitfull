@@ -6,6 +6,7 @@ export const ShadowSchema = z.object({
     offsetY: z.number(),
     blur: z.number().min(0).optional(),
     color: z.string().optional(),
+    fadeThreshold: z.number().gt(0).max(1).optional(),
 });
 export type InputShadow = z.infer<typeof ShadowSchema>;
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { TokenMetrics, Shadow } from '../types.js';
-import { inflateForShadow, shadowVisibleSigma, PERCEPTIBILITY_THRESHOLD } from './effective-bounds.js';
+import { inflateForShadow, shadowVisibleSigma, DEFAULT_SHADOW_FADE_THRESHOLD } from './effective-bounds.js';
 
 const EPS = 1e-9;
 function close(a: number, b: number): boolean { return Math.abs(a - b) < EPS; }
@@ -56,20 +56,29 @@ test('negative offsetY grows tightTop (moves upward)', () => {
     assert.equal(out.tightBottom, 2);
 });
 
-test('shadowVisibleSigma is alpha-aware — σ derived from alpha to reach the perceptibility threshold', () => {
-    const T = PERCEPTIBILITY_THRESHOLD;
-    const expected = (alpha: number) => alpha <= T ? 0 : Math.sqrt(-2 * Math.log(T / alpha));
-    // No color → assume opaque → uses full σ derived from alpha=1.
-    assert.ok(close(shadowVisibleSigma(undefined),         expected(1)));
-    assert.ok(close(shadowVisibleSigma('#000000'),         expected(1)));
-    assert.ok(close(shadowVisibleSigma('rgba(0,0,0,1)'),   expected(1)));
-    // Semi-transparent → smaller σ.
-    assert.ok(close(shadowVisibleSigma('rgba(0,0,0,0.75)'), expected(0.75)));
-    // Alpha ≤ threshold → no reservation (peak already at/below threshold).
-    assert.equal(shadowVisibleSigma('rgba(0,0,0,0.1)'), 0);
-    assert.equal(shadowVisibleSigma(`rgba(0,0,0,${T})`), 0);
-    // 8-hex alpha channel: 0xE0/255 ≈ 0.878 (above 0.5 threshold).
-    assert.ok(close(shadowVisibleSigma('#000000E0'),       expected(0xE0 / 255)));
+test('shadowVisibleSigma is alpha-aware — σ derived from alpha via erfc math', () => {
+    const T = DEFAULT_SHADOW_FADE_THRESHOLD;
+    // Opaque shadow at default threshold (0.10): σ ≈ 1.28.
+    assert.ok(shadowVisibleSigma(undefined) > 1.2);
+    assert.ok(shadowVisibleSigma(undefined) < 1.4);
+    // Hex and rgba with alpha=1 match.
+    assert.ok(close(shadowVisibleSigma('#000000'), shadowVisibleSigma('rgba(0,0,0,1)')));
+    // Semi-transparent → smaller σ (needs less padding to fade).
+    assert.ok(shadowVisibleSigma('rgba(0,0,0,0.5)') < shadowVisibleSigma('rgba(0,0,0,1)'));
+    assert.ok(shadowVisibleSigma('rgba(0,0,0,0.5)') > 0);
+    // Alpha ≤ 2T → no reservation (peak already below threshold; erfc(0)=1).
+    assert.equal(shadowVisibleSigma(`rgba(0,0,0,${2 * T})`), 0);
+    assert.equal(shadowVisibleSigma('rgba(0,0,0,0.01)'), 0);
+    // Threshold override — tighter threshold widens σ.
+    const strict = shadowVisibleSigma('rgba(0,0,0,1)', 0.01);
+    assert.ok(strict > shadowVisibleSigma('rgba(0,0,0,1)'), 'tighter threshold should widen σ');
+    assert.ok(strict > 2.2 && strict < 2.5, 'σ ≈ 2.33 for opaque at 1% threshold');
+    // Higher threshold shrinks σ.
+    const loose = shadowVisibleSigma('rgba(0,0,0,1)', 0.30);
+    assert.ok(loose < shadowVisibleSigma('rgba(0,0,0,1)'), 'looser threshold should shrink σ');
+    // 8-hex alpha channel picks up alpha correctly.
+    assert.ok(shadowVisibleSigma('#000000C0') > 0);
+    assert.ok(shadowVisibleSigma('#000000C0') < shadowVisibleSigma('rgba(0,0,0,1)'));
 });
 
 test('blur alone inflates symmetrically by σ * blur * tokenSize', () => {

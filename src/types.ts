@@ -17,6 +17,14 @@ export type Shadow = {
     blur?: number;
     /** CSS shadow color. Default 'rgba(0,0,0,0.5)'. */
     color?: string;
+    /**
+     * Opacity (0–1) at which the shadow tail is considered faded — controls
+     * how much space the shadow envelope reserves in fit and in the SVG
+     * viewBox. Lower = tighter fade (more padding, cleaner on high-contrast
+     * composites). Higher = smaller envelope (more compact output, may show
+     * a soft edge on extreme composites). Default ~0.10.
+     */
+    fadeThreshold?: number;
 };
 
 /** Input token - what the user provides */

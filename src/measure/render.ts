@@ -68,7 +68,7 @@ function shadowInflation(
             const eff = mt.token.shadow ?? topLevelShadow;
             if (!eff) continue;
             const { dx, dy, blurPx } = shadowDeltas(eff, mt.token.size);
-            const tail = shadowVisibleSigma(eff.color) * blurPx;
+            const tail = shadowVisibleSigma(eff.color, eff.fadeThreshold) * blurPx;
             // Peak-centered gaussian envelope: visible edge = offset ± tail.
             left   = Math.max(left,   Math.max(0, tail - dx));
             right  = Math.max(right,  Math.max(0, tail + dx));
@@ -151,7 +151,7 @@ export function lineToSVG(line: MeasuredLine, options: {
     if (blurKeys.size > 0) {
         svg += '  <defs>\n';
         for (const key of blurKeys) {
-            svg += `    <filter id="${filterId(key)}" x="-50%" y="-50%" width="200%" height="200%">\n`;
+            svg += `    <filter id="${filterId(key)}" x="-200%" y="-200%" width="500%" height="500%">\n`;
             svg += `      <feGaussianBlur stdDeviation="${key}"/>\n`;
             svg += '    </filter>\n';
         }
@@ -260,7 +260,7 @@ export function layoutToSVG(
     if (blurKeys.size > 0) {
         svg += '  <defs>\n';
         for (const key of blurKeys) {
-            svg += `    <filter id="${filterId(key)}" x="-50%" y="-50%" width="200%" height="200%">\n`;
+            svg += `    <filter id="${filterId(key)}" x="-200%" y="-200%" width="500%" height="500%">\n`;
             svg += `      <feGaussianBlur stdDeviation="${key}"/>\n`;
             svg += '    </filter>\n';
         }

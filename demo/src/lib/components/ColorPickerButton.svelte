@@ -215,9 +215,11 @@
             0 0 / 8px 8px;
     }
 
-    /* Zag's positioner uses inline `z-index: var(--z-index)` which defaults to auto.
-       Setting the variable overrides it cleanly (no !important needed). */
-    .cp-positioner { --z-index: 1000; }
+    /* The positioner is portaled to <body> and needs to sit above the mobile
+       settings sheet (z=50). Zag emits `z-index: var(--z-index); --z-index: auto`
+       inline on the positioner, so a plain class rule loses to that inline
+       style — !important is the only way to override it. */
+    .cp-positioner { z-index: 1000 !important; }
     .cp-content {
         background: light-dark(var(--color-surface-50), var(--color-surface-900));
         border: 1px solid light-dark(var(--color-surface-200), var(--color-surface-800));

@@ -23,6 +23,15 @@ function parseShadowEm(raw: string): number {
     return n;
 }
 
+/** Parse and validate the shadow fade threshold (opacity 0–1, exclusive of 0). */
+function parseFadeThreshold(raw: string): number {
+    const n = parseFloat(raw);
+    if (!isFinite(n) || n <= 0 || n > 1) {
+        throw new Error(`--shadow-fade-threshold must be a number in (0, 1] (opacity), got "${raw}"`);
+    }
+    return n;
+}
+
 function parseSize(sizeStr: string): { width: number; height: number } {
     const match = sizeStr.match(/^(\d+)x(\d+)$/);
     if (!match) throw new Error(`Invalid size format: "${sizeStr}". Expected WxH (e.g., 400x800)`);
@@ -144,6 +153,7 @@ program
     .option('--shadow-y <em>', 'Shadow vertical offset (em)', parseShadowEm)
     .option('--shadow-blur <em>', 'Shadow blur radius (em)', parseShadowEm)
     .option('--shadow-color <color>', 'Shadow color (any CSS color)')
+    .option('--shadow-fade-threshold <opacity>', 'Opacity in (0, 1] at which the shadow tail is considered faded. Lower = tighter fade (more padding, cleaner on high-contrast composites). Typical range 0.01–0.50. Default 0.10.', parseFadeThreshold)
     .option('--annotate', 'Show layout annotations (line bounds, token bounds, baselines)')
     .action(async (opts) => {
         try {
@@ -271,12 +281,14 @@ program
             const anyShadowFlag = opts.shadowX !== undefined
                 || opts.shadowY !== undefined
                 || opts.shadowBlur !== undefined
-                || opts.shadowColor !== undefined;
+                || opts.shadowColor !== undefined
+                || opts.shadowFadeThreshold !== undefined;
             const shadow: Shadow | undefined = anyShadowFlag ? {
                 offsetX: opts.shadowX ?? 0.05,
                 offsetY: opts.shadowY ?? 0.05,
                 blur:    opts.shadowBlur ?? 0,
                 color:   opts.shadowColor ?? 'rgba(0,0,0,0.5)',
+                ...(opts.shadowFadeThreshold !== undefined ? { fadeThreshold: opts.shadowFadeThreshold } : {}),
             } : undefined;
 
             const startTime = performance.now();

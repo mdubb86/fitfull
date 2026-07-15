@@ -187,6 +187,49 @@ describe('CLI happy paths', () => {
 
         unlinkSync(out);
     });
+
+    test('CLI: --shadow-fade-threshold widens padding when tightened', () => {
+        function outputDims(args: string[]): { w: number; h: number } {
+            const result = runCli(args);
+            assert.strictEqual(result.status, 0, `expected exit 0\n${result.stderr}`);
+            const json = JSON.parse(result.stdout);
+            return { w: json.width, h: json.height };
+        }
+        const outDefault = tmp('fade-default.png');
+        const outTight   = tmp('fade-tight.png');
+        // Use --text-height so the raw glyph is fixed and padding differences
+        // show up directly in the output dimensions (auto-fit would clamp to
+        // box height for both).
+        const base = [
+            '--text', 'A',
+            '--font', join(ROOT, 'fonts', 'Inter-Bold.ttf'),
+            '--size', '1000x1000',
+            '--text-height', '100',
+            '--shadow-x', '0', '--shadow-y', '0',
+            '--shadow-blur', '0.08', '--shadow-color', '#ffffff',
+        ];
+        const defaultDims = outputDims([...base, '-o', outDefault]);
+        const tightDims   = outputDims([...base, '--shadow-fade-threshold', '0.01', '-o', outTight]);
+        assert.ok(tightDims.w > defaultDims.w, `tight threshold should widen output: default=${defaultDims.w} tight=${tightDims.w}`);
+        assert.ok(tightDims.h > defaultDims.h, `tight threshold should raise output: default=${defaultDims.h} tight=${tightDims.h}`);
+        unlinkSync(outDefault);
+        unlinkSync(outTight);
+    });
+
+    test('CLI: --shadow-fade-threshold rejects out-of-range values', () => {
+        const font = join(ROOT, 'fonts', 'Inter-Bold.ttf');
+        const bad = ['0', '-0.1', '1.5', 'abc'];
+        for (const val of bad) {
+            const result = runCli([
+                '--text', 'A', '--font', font, '--size', '400x100',
+                '--shadow-x', '0.05',
+                '--shadow-fade-threshold', val,
+                '-o', tmp('bad.png'),
+            ]);
+            assert.notStrictEqual(result.status, 0, `expected non-zero exit for --shadow-fade-threshold ${val}`);
+            assert.ok(result.stderr.includes('shadow-fade-threshold'), `expected error to mention flag; got: ${result.stderr}`);
+        }
+    });
 });
 
 describe('CLI stdin and output dispatch', () => {
